@@ -58,7 +58,15 @@ export function PlanScreen({
 }: Props) {
   const sync = usePlannerSync(db, planId)
   const { state, dispatch, status, syncedAt, error, dismissError } = sync
-  const { members } = usePlanMembers(db, planId)
+  const linkedBuyers = state.purchasers
+    .flatMap((p) => (p.userId ? [p.userId] : []))
+    .sort()
+    .join(',')
+  const { members, reload: reloadMembers } = usePlanMembers(
+    db,
+    planId,
+    linkedBuyers,
+  )
   const [membersOpen, setMembersOpen] = useState(false)
   // The pre-accounts list saved on this device, offered for import once.
   const [legacy, setLegacy] = useState(loadLegacyState)
@@ -126,7 +134,10 @@ export function PlanScreen({
           <button
             type="button"
             className="secondary-button"
-            onClick={() => setMembersOpen(true)}
+            onClick={() => {
+              reloadMembers()
+              setMembersOpen(true)
+            }}
           >
             Members{members.length > 0 ? ` · ${members.length}` : ''}
           </button>

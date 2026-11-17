@@ -7,8 +7,16 @@ export interface Member {
   role: 'owner' | 'member'
 }
 
-/** The members of a plan, kept current as people join or leave. */
-export function usePlanMembers(db: Db, planId: string) {
+/**
+ * The members of a plan, kept current as people join or leave.
+ *
+ * Two signals keep it fresh, because live updates are best-effort: its own
+ * subscription to plan_members, and `linkedBuyers`, a key built from the
+ * buyers linked to accounts. Joining adds a linked buyer and leaving unlinks
+ * one, and buyers arrive over the plan's main channel, so either signal
+ * alone is enough to trigger a reload.
+ */
+export function usePlanMembers(db: Db, planId: string, linkedBuyers: string) {
   const [members, setMembers] = useState<Member[]>([])
   const [version, setVersion] = useState(0)
   const reload = useCallback(() => setVersion((v) => v + 1), [])
@@ -33,7 +41,7 @@ export function usePlanMembers(db: Db, planId: string) {
     return () => {
       current = false
     }
-  }, [db, planId, version])
+  }, [db, planId, version, linkedBuyers])
 
   // Someone joining or leaving shows up without a reload.
   useEffect(() => {
