@@ -150,14 +150,45 @@ export function usePlannerSync(db: Db, planId: string) {
         )
     }
 
+    // Joining the channel and receiving database changes are two steps.
+    // "SUBSCRIBED" means the channel is joined; the change feed behind it can
+    // take a few more seconds to start (longest when the server has been
+    // idle), and changes made in that gap are never delivered. The server
+    // says when the feed is ready with a "system" message, so that is when
+    // the plan is reloaded and shown as live: anything changed before then
+    // is in the reload.
+    let fallback: ReturnType<typeof setTimeout> | undefined
+    const feedReady = () => {
+      if (!active) return
+      clearTimeout(fallback)
+      channelReady.current = true
+      void refetch()
+    }
+
+    channel.on(
+      'system',
+      {},
+      (message: { extension?: string; status?: string }) => {
+        if (message.extension !== 'postgres_changes') return
+        if (message.status === 'ok') {
+          feedReady()
+        } else {
+          channelReady.current = false
+          if (statusRef.current !== 'gone') setStatus('offline')
+        }
+      },
+    )
+
     channel.subscribe((channelStatus) => {
       if (!active) return
       if (channelStatus === 'SUBSCRIBED') {
-        channelReady.current = true
-        // Changes made while we weren't subscribed are never replayed, so
-        // reload everything each time the channel (re)connects.
+        // Show fresh data straight away, but stay "Syncing" until the feed
+        // is confirmed. If a server never confirms, assume ready after 10s.
         void refetch()
+        clearTimeout(fallback)
+        fallback = setTimeout(feedReady, 10_000)
       } else {
+        clearTimeout(fallback)
         channelReady.current = false
         if (statusRef.current !== 'gone') setStatus('offline')
       }
@@ -165,6 +196,7 @@ export function usePlannerSync(db: Db, planId: string) {
 
     return () => {
       active = false
+      clearTimeout(fallback)
       channelReady.current = false
       void db.removeChannel(channel)
     }
