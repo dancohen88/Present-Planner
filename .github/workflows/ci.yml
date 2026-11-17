@@ -16,6 +16,10 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Fail if anything that ships to users has a known vulnerability.
+      # Build and test tools are left out: they never run on a phone, and
+      # one of them has an advisory with no fix released yet (see README).
+      - run: npm audit --omit=dev --audit-level=moderate
       - run: npm run lint
       # The build type-checks (tsc -b) before bundling.
       - run: npm run build
