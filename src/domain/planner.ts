@@ -52,7 +52,11 @@ export interface PlannerState {
   gifts: Gift[]
 }
 
-export const emptyState: PlannerState = { people: [], purchasers: [], gifts: [] }
+export const emptyState: PlannerState = {
+  people: [],
+  purchasers: [],
+  gifts: [],
+}
 
 // Actions carry fully formed objects (ids included). Generating an id inside
 // the reducer would make it impure, and React calls reducers twice in dev

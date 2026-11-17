@@ -17,6 +17,8 @@ interface Props {
   filter: PurchaserFilter
   onFilterChange: (filter: PurchaserFilter) => void
   dispatch: Dispatch<PlannerAction>
+  /** Offline: filtering still works, adding and removing buyers doesn't. */
+  readOnly: boolean
 }
 
 function workload(ideaCount: number, giftCount: number): string {
@@ -30,6 +32,7 @@ export function PurchaserBar({
   filter,
   onFilterChange,
   dispatch,
+  readOnly,
 }: Props) {
   const [name, setName] = useState('')
 
@@ -92,6 +95,7 @@ export function PurchaserBar({
               <button
                 type="button"
                 className="chip-remove"
+                disabled={readOnly}
                 aria-label={`Remove ${purchaser.name}`}
                 onClick={() =>
                   removePurchaser(
@@ -117,25 +121,27 @@ export function PurchaserBar({
             >
               <span className="dot dot-empty" />
               <span className="chip-name">Unassigned</span>
-              <span className="chip-count">
-                {unassigned.ideaCount} to buy
-              </span>
+              <span className="chip-count">{unassigned.ideaCount} to buy</span>
             </button>
           </span>
         )}
 
         <form className="chip-add" onSubmit={addPurchaser}>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={
-              state.purchasers.length === 0 ? 'Add a buyer, e.g. you' : 'Add a buyer'
-            }
-            aria-label="Name of someone doing the buying"
-          />
-          <button type="submit" className="secondary">
-            Add
-          </button>
+          <fieldset className="edit-area chip-add-fields" disabled={readOnly}>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder={
+                state.purchasers.length === 0
+                  ? 'Add a buyer, e.g. you'
+                  : 'Add a buyer'
+              }
+              aria-label="Name of someone doing the buying"
+            />
+            <button type="submit" className="secondary">
+              Add
+            </button>
+          </fieldset>
         </form>
       </div>
     </section>
