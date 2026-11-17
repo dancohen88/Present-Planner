@@ -1,0 +1,814 @@
+:root {
+  /* Declaring both schemes lets the browser style form controls and
+     scrollbars to match; light-dark() then picks a value per scheme. */
+  color-scheme: light dark;
+
+  --bg: light-dark(#f7f2ea, #14161a);
+  --surface: light-dark(#ffffff, #1f2227);
+  --surface-sunk: light-dark(#f3ede3, #181a1f);
+  --border: light-dark(#e6ddcf, #33373e);
+  --text: light-dark(#22201c, #ecebe8);
+  --muted: light-dark(#6f6a61, #9a9ea6);
+  --accent: light-dark(#a3293d, #e8798a);
+  --accent-soft: light-dark(#f6e3e6, #3a2329);
+  --accent-text: light-dark(#ffffff, #16181c);
+  --danger: light-dark(#b3261e, #f2857d);
+  --danger-soft: light-dark(#f8dedc, #40221f);
+
+  /* Progress wears one green hue in four steps, light to strong, because
+     idea -> bought -> wrapped -> given is an ordered scale, not four
+     unrelated categories. */
+  --go-1: light-dark(#e3f1e8, #22352b);
+  --go-2: light-dark(#b4dcc5, #2f5a45);
+  --go-3: light-dark(#2f6f4f, #7cc7a0);
+  --on-go-1: light-dark(#1f4d37, #b9e2cc);
+  --on-go-2: light-dark(#143626, #e3f5ea);
+  --on-go-3: light-dark(#ffffff, #10231a);
+
+  /* Purchaser colours: a fixed order checked for colour-blind separation.
+     Never reorder or add to them by eye. */
+  --p0: light-dark(#2a78d6, #3987e5);
+  --p1: light-dark(#eb6834, #d95926);
+  --p2: light-dark(#1baf7a, #199e70);
+  --p3: light-dark(#eda100, #c98500);
+  --p4: light-dark(#e87ba4, #d55181);
+  --p5: light-dark(#008300, #0ca30c);
+  --p6: light-dark(#6250d6, #9085e9);
+  --p7: light-dark(#e34948, #e66767);
+  --p-overflow: light-dark(#898781, #898781);
+
+  --display: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.05);
+  --scroll-shadow: light-dark(rgb(0 0 0 / 0.16), rgb(0 0 0 / 0.6));
+
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+main {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 32px 16px 80px;
+}
+
+/* ---------- Type ---------- */
+
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+p {
+  margin: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+.error {
+  margin-top: 6px;
+  font-size: 0.85rem;
+  color: var(--danger);
+}
+
+/* ---------- Controls ---------- */
+
+input,
+select,
+button {
+  font: inherit;
+  color: inherit;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+input::placeholder {
+  color: var(--muted);
+}
+
+input.price {
+  width: 6.5rem;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+button {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+button[type='submit'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+  transition: filter 120ms ease;
+}
+
+button[type='submit']:hover {
+  filter: brightness(1.08);
+}
+
+button[type='submit'].secondary {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+button.ghost {
+  border-color: transparent;
+  background: none;
+  color: var(--muted);
+  padding: 2px 8px;
+}
+
+button.ghost:hover {
+  color: var(--danger);
+}
+
+button.link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+}
+
+.row input:not(.price) {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- Page header and summary ---------- */
+
+.page-header {
+  margin-bottom: 24px;
+}
+
+.summary {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.tile-value {
+  font-size: 1.7rem;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.tile-of {
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.tile-note {
+  min-height: 1.3em;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.tile .meter {
+  margin-top: 8px;
+}
+
+/* ---------- Budget meter ---------- */
+
+.meter {
+  display: flex;
+  gap: 2px;
+  height: 8px;
+  width: 100%;
+}
+
+.meter span {
+  border-radius: 999px;
+  /* flex-basis 0 makes each segment's width exactly its flex-grow share. */
+  flex-basis: 0;
+  transition: flex-grow 300ms ease;
+}
+
+.meter-spent {
+  background: var(--go-3);
+}
+
+.meter-planned {
+  background: var(--go-2);
+}
+
+.meter-rest {
+  background: var(--go-1);
+}
+
+.meter.over .meter-spent {
+  background: var(--danger);
+}
+
+.meter.over .meter-rest {
+  background: var(--danger-soft);
+}
+
+/* ---------- Purchasers ---------- */
+
+.purchasers {
+  margin-bottom: 20px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+
+.chip.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.chip button {
+  border: none;
+  background: none;
+  border-radius: 999px;
+}
+
+.chip-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+}
+
+.chip-main:has(+ .chip-remove) {
+  padding-right: 4px;
+}
+
+.chip-name {
+  font-weight: 600;
+}
+
+.chip-count {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.chip-remove {
+  padding: 4px 10px 4px 6px;
+  color: var(--muted);
+}
+
+.chip-remove:hover {
+  color: var(--danger);
+}
+
+.chip-add {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.chip-add input {
+  width: 11rem;
+  padding: 7px 12px;
+  border-radius: 999px;
+}
+
+.chip-add button {
+  padding: 7px 14px;
+  border-radius: 999px;
+}
+
+.dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--p-overflow);
+}
+
+.dot.slot-0 { background: var(--p0); }
+.dot.slot-1 { background: var(--p1); }
+.dot.slot-2 { background: var(--p2); }
+.dot.slot-3 { background: var(--p3); }
+.dot.slot-4 { background: var(--p4); }
+.dot.slot-5 { background: var(--p5); }
+.dot.slot-6 { background: var(--p6); }
+.dot.slot-7 { background: var(--p7); }
+
+.dot.dot-empty {
+  background: none;
+  border: 1.5px dashed var(--muted);
+}
+
+.filter-note {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  font-size: 0.92rem;
+}
+
+/* ---------- Cards ---------- */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  transition: border-color 200ms ease;
+}
+
+.card.sorted {
+  border-color: var(--go-2);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-family: var(--display);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.card-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title h2 {
+  font-family: var(--display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--go-1);
+  color: var(--on-go-1);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.budget {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.budget .meter,
+.budget .over-note {
+  grid-column: 1 / -1;
+}
+
+.spend {
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.spend strong {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.budget-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.budget-field input {
+  width: 5.2rem;
+  padding: 4px 8px;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--surface-sunk);
+  border-color: transparent;
+}
+
+.budget-field input:hover,
+.budget-field input:focus {
+  border-color: var(--border);
+}
+
+.over-note {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--danger);
+}
+
+/* ---------- Gifts ---------- */
+
+.gifts {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.gift {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.gift:last-child {
+  border-bottom: 1px solid var(--border);
+}
+
+.gift-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.gift-title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.gift-price {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.gift.status-given .gift-title {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.gift-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.buyer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* A select restyled as a pill. appearance: none drops the native chrome, so
+   the chevron is drawn back in as a background image. */
+select.pill {
+  appearance: none;
+  max-width: 100%;
+  padding: 3px 26px 3px 10px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23898781' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.status-idea .status-pill {
+  color: var(--muted);
+}
+
+.status-bought .status-pill {
+  border-color: transparent;
+  background-color: var(--go-1);
+  color: var(--on-go-1);
+}
+
+.status-wrapped .status-pill {
+  border-color: transparent;
+  background-color: var(--go-2);
+  color: var(--on-go-2);
+}
+
+.status-given .status-pill {
+  border-color: transparent;
+  background-color: var(--go-3);
+  color: var(--on-go-3);
+}
+
+.card form {
+  margin-top: auto;
+}
+
+/* ---------- View switch ---------- */
+
+.view-switch {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 16px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-sunk);
+}
+
+.view-switch button {
+  padding: 6px 16px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.view-switch button[aria-pressed='true'] {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+/* ---------- Totals table ---------- */
+
+.hint {
+  margin-bottom: 12px;
+  font-size: 0.92rem;
+}
+
+.table-wrap {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.table-note {
+  padding: 14px 16px 6px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* "Scroll shadows": a soft shadow on the right edge says more columns are
+   hidden. The shadow layer is fixed to the box (scroll); the cover layer moves
+   with the content (local), so it slides over the shadow once you reach the
+   end. Pure CSS, no scroll listeners. */
+.table-scroll {
+  overflow-x: auto;
+  background:
+    linear-gradient(to left, var(--surface) 30%, transparent) right center /
+      40px 100% no-repeat local,
+    radial-gradient(farthest-side at 100% 50%, var(--scroll-shadow), transparent)
+      right center / 16px 100% no-repeat scroll;
+}
+
+.breakdown {
+  width: 100%;
+  border-collapse: collapse;
+  /* Equal-width digits so amounts line up down each column. */
+  font-variant-numeric: tabular-nums;
+}
+
+.breakdown th,
+.breakdown td {
+  padding: 12px 16px;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+/* The name column stays put while the amounts scroll sideways. */
+.breakdown th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  text-align: left;
+  background: var(--surface);
+}
+
+.breakdown thead th {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.breakdown tbody tr + tr {
+  border-top: 1px solid var(--border);
+}
+
+.breakdown tfoot {
+  border-top: 2px solid var(--border);
+}
+
+.breakdown tfoot th,
+.breakdown tfoot .amount {
+  font-weight: 650;
+}
+
+.breakdown .total {
+  background: var(--surface-sunk);
+}
+
+.breakdown .active {
+  background: var(--accent-soft);
+}
+
+.col-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+}
+
+.amount,
+.ideas,
+.row-name,
+.row-budget {
+  display: block;
+}
+
+.ideas {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.over-amount {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.row-name {
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.row-budget {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* ---------- Empty states ---------- */
+
+.empty {
+  margin-top: 56px;
+  text-align: center;
+}
+
+.empty-mark {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.empty-title {
+  margin-top: 12px;
+  font-family: var(--display);
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.empty-filter {
+  margin-top: 32px;
+  text-align: center;
+}
+
+/* ---------- Small screens and motion ---------- */
+
+@media (max-width: 640px) {
+  .summary {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .summary .tile:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .add-person {
+    flex-wrap: wrap;
+  }
+
+  .add-person input:not(.price) {
+    flex-basis: 100%;
+  }
+
+  .add-person button {
+    flex: 1;
+  }
+
+  .breakdown th,
+  .breakdown td {
+    padding: 10px 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
