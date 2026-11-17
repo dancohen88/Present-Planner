@@ -43,6 +43,7 @@ export function PurchaserBar({
         id: crypto.randomUUID(),
         name: trimmed,
         slot: nextPurchaserSlot(state.purchasers),
+        userId: null,
       },
     })
     setName('')

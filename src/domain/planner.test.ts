@@ -16,8 +16,8 @@ function run(actions: PlannerAction[], from: PlannerState = emptyState) {
   return actions.reduce(plannerReducer, from)
 }
 
-const sam = { id: 'p1', name: 'Sam', budgetPence: 5000 }
-const alex = { id: 'p2', name: 'Alex', budgetPence: null }
+const sam = { id: 'p1', name: 'Sam', budgetPence: 5000, memberUserId: null }
+const alex = { id: 'p2', name: 'Alex', budgetPence: null, memberUserId: null }
 
 function gift(overrides: Partial<Gift> & Pick<Gift, 'id'>): Gift {
   return {
@@ -77,8 +77,8 @@ describe('plannerReducer', () => {
 })
 
 describe('purchasers', () => {
-  const dan = { id: 'b1', name: 'Dan', slot: 0 }
-  const jo = { id: 'b2', name: 'Jo', slot: 1 }
+  const dan = { id: 'b1', name: 'Dan', slot: 0, userId: null }
+  const jo = { id: 'b2', name: 'Jo', slot: 1, userId: null }
 
   it('allocates a gift to a purchaser and can unassign it again', () => {
     const allocated = run([
@@ -121,6 +121,7 @@ describe('purchasers', () => {
     const eight = Array.from({ length: 8 }, (_, slot) => ({
       id: `b${slot}`,
       name: `Buyer ${slot}`,
+      userId: null,
       slot,
     }))
     expect(nextPurchaserSlot(eight)).toBe(8)
@@ -128,9 +129,10 @@ describe('purchasers', () => {
 })
 
 describe('normaliseState', () => {
-  it('fills in purchaser fields missing from data saved before they existed', () => {
+  it('fills in fields missing from data saved by earlier versions', () => {
     const saved = {
-      people: [sam],
+      // The shape version 1 saved: no account links, no purchasers.
+      people: [{ id: sam.id, name: sam.name, budgetPence: sam.budgetPence }],
       gifts: [
         {
           id: 'g1',
@@ -155,8 +157,8 @@ describe('normaliseState', () => {
 })
 
 describe('breakdownByPurchaser', () => {
-  const dan = { id: 'b1', name: 'Dan', slot: 0 }
-  const jo = { id: 'b2', name: 'Jo', slot: 1 }
+  const dan = { id: 'b1', name: 'Dan', slot: 0, userId: null }
+  const jo = { id: 'b2', name: 'Jo', slot: 1, userId: null }
 
   it('totals each person’s gifts by who is buying them', () => {
     const state = run([
