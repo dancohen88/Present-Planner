@@ -28,7 +28,8 @@ export function saveState(state: PlannerState): void {
 /**
  * Turns whatever was saved into the current shape, filling in fields that
  * didn't exist when it was written (a "tolerant reader"). Data saved before
- * purchasers existed has no purchasers list and no purchaserId on its gifts.
+ * purchasers existed has no purchasers list and no purchaserId on its gifts;
+ * data saved before accounts existed has no memberUserId or userId.
  * Returns null if the value isn't planner data at all.
  */
 export function normaliseState(value: unknown): PlannerState | null {
@@ -36,8 +37,13 @@ export function normaliseState(value: unknown): PlannerState | null {
   const saved = value as Partial<PlannerState>
   if (!Array.isArray(saved.people) || !Array.isArray(saved.gifts)) return null
   return {
-    people: saved.people,
-    purchasers: Array.isArray(saved.purchasers) ? saved.purchasers : [],
+    people: saved.people.map((person) => ({
+      ...person,
+      memberUserId: person.memberUserId ?? null,
+    })),
+    purchasers: (Array.isArray(saved.purchasers) ? saved.purchasers : []).map(
+      (purchaser) => ({ ...purchaser, userId: purchaser.userId ?? null }),
+    ),
     gifts: saved.gifts.map((gift) => ({
       ...gift,
       purchaserId: gift.purchaserId ?? null,

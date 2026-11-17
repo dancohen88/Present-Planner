@@ -71,7 +71,12 @@ function App() {
     }
     dispatch({
       type: 'personAdded',
-      person: { id: crypto.randomUUID(), name: trimmed, budgetPence },
+      person: {
+        id: crypto.randomUUID(),
+        name: trimmed,
+        budgetPence,
+        memberUserId: null,
+      },
     })
     setName('')
     setBudget('')

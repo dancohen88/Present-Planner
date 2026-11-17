@@ -11,12 +11,19 @@ export interface Person {
   name: string
   /** null means no budget has been set. */
   budgetPence: number | null
+  /**
+   * The account of a plan member this person is, if any. The database hides
+   * this person and their gifts from that member, to keep gifts a surprise.
+   */
+  memberUserId: string | null
 }
 
 /** Someone doing the buying. */
 export interface Purchaser {
   id: string
   name: string
+  /** The account of a plan member this purchaser is, if any. */
+  userId: string | null
   /**
    * Which colour this purchaser wears (0 to PURCHASER_SLOTS - 1), or
    * PURCHASER_SLOTS for the neutral overflow colour. It is stored rather than
