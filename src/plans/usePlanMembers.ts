@@ -64,6 +64,16 @@ export function usePlanMembers(db: Db, planId: string, linkedBuyers: string) {
         { event: 'DELETE', schema: 'public', table: 'plan_members' },
         reload,
       )
+      // Reload once the change feed is actually running, to pick up anyone
+      // who joined while it was starting (see usePlannerSync).
+      .on('system', {}, (message: { extension?: string; status?: string }) => {
+        if (
+          message.extension === 'postgres_changes' &&
+          message.status === 'ok'
+        ) {
+          reload()
+        }
+      })
       .subscribe()
     return () => {
       void db.removeChannel(channel)
