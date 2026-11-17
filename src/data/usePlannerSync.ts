@@ -230,7 +230,7 @@ export function usePlannerSync(db: Db, planId: string) {
   }, [planId, state, syncedAt])
 
   const send = useCallback(
-    async (action: PlannerAction): Promise<void> => {
+    async (action: PlannerAction): Promise<boolean> => {
       pendingWrites.current += 1
       try {
         // At most two attempts; see the colour clash below.
@@ -240,7 +240,7 @@ export function usePlannerSync(db: Db, planId: string) {
           try {
             await runMutation(db, toMutation(current, planId))
             markSynced()
-            return
+            return true
           } catch (err) {
             // Two people added a buyer at the same moment and got the same
             // colour. Reload, then try once more with the next free colour.
@@ -263,7 +263,7 @@ export function usePlannerSync(db: Db, planId: string) {
             }
             setError(describeError(err))
             refetchAfterWrites.current = true
-            return
+            return false
           }
         }
       } finally {
@@ -275,6 +275,25 @@ export function usePlannerSync(db: Db, planId: string) {
       }
     },
     [db, planId, markSynced, refetch],
+  )
+
+  /**
+   * Applies several actions one after another, each waiting for the
+   * previous write, for changes that depend on each other (a gift needs its
+   * person to exist first). Stops at the first failure.
+   */
+  const dispatchAll = useCallback(
+    async (actions: PlannerAction[]): Promise<boolean> => {
+      if (statusRef.current !== 'live') {
+        setError('Wait until the plan shows Live, then try again.')
+        return false
+      }
+      for (const action of actions) {
+        if (!(await send(action))) return false
+      }
+      return true
+    },
+    [send],
   )
 
   const dispatch = useCallback(
@@ -290,5 +309,14 @@ export function usePlannerSync(db: Db, planId: string) {
 
   const dismissError = useCallback(() => setError(null), [])
 
-  return { state, dispatch, status, syncedAt, planName, error, dismissError }
+  return {
+    state,
+    dispatch,
+    dispatchAll,
+    status,
+    syncedAt,
+    planName,
+    error,
+    dismissError,
+  }
 }

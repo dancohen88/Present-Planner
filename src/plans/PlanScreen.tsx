@@ -1,14 +1,24 @@
+import { useState } from 'react'
 import { PlannerView } from '../components/PlannerView.tsx'
+import type { Db } from '../data/db.ts'
+import { importLegacy } from '../data/importLegacy.ts'
 import { usePlannerSync } from '../data/usePlannerSync.ts'
 import type { SyncStatus } from '../data/usePlannerSync.ts'
-import type { Db } from '../data/supabase.ts'
+import { clearLegacyState, loadLegacyState } from '../storage.ts'
+import { MembersDialog } from './MembersDialog.tsx'
+import type { PlanSummary } from './usePlans.ts'
+import { usePlanMembers } from './usePlanMembers.ts'
 
 interface Props {
   db: Db
   planId: string
-  /** Shown until the plan's own name has loaded. */
-  fallbackName: string
+  plans: PlanSummary[]
+  myUserId: string
   email: string | undefined
+  onSwitchPlan: (planId: string) => void
+  onNewPlan: () => void
+  /** After leaving or deleting this plan. */
+  onLeftPlan: () => void
   onSignOut: () => void
 }
 
@@ -17,6 +27,12 @@ const STATUS_LABEL: Record<SyncStatus, string> = {
   live: 'Live',
   offline: 'Offline',
   gone: 'Unavailable',
+}
+
+const NEW_PLAN = '__new__'
+
+function count(n: number, one: string, many: string): string {
+  return `${n} ${n === 1 ? one : many}`
 }
 
 function timeOf(iso: string): string {
@@ -32,12 +48,53 @@ function timeOf(iso: string): string {
 export function PlanScreen({
   db,
   planId,
-  fallbackName,
+  plans,
+  myUserId,
   email,
+  onSwitchPlan,
+  onNewPlan,
+  onLeftPlan,
   onSignOut,
 }: Props) {
-  const { state, dispatch, status, syncedAt, planName, error, dismissError } =
-    usePlannerSync(db, planId)
+  const sync = usePlannerSync(db, planId)
+  const { state, dispatch, status, syncedAt, error, dismissError } = sync
+  const linkedBuyers = state.purchasers
+    .flatMap((p) => (p.userId ? [p.userId] : []))
+    .sort()
+    .join(',')
+  const { members, reload: reloadMembers } = usePlanMembers(
+    db,
+    planId,
+    linkedBuyers,
+  )
+  const [membersOpen, setMembersOpen] = useState(false)
+  // The pre-accounts list saved on this device, offered for import once.
+  const [legacy, setLegacy] = useState(loadLegacyState)
+  const [importing, setImporting] = useState(false)
+
+  const planName =
+    sync.planName ?? plans.find((p) => p.id === planId)?.name ?? 'Your plan'
+
+  async function importOldList() {
+    if (!legacy) return
+    setImporting(true)
+    const actions = importLegacy(legacy, state, () => crypto.randomUUID())
+    const ok = await sync.dispatchAll(actions)
+    setImporting(false)
+    if (ok) {
+      clearLegacyState()
+      setLegacy(null)
+    }
+  }
+
+  function discardOldList() {
+    if (
+      !confirm("Discard the list saved on this device? This can't be undone.")
+    )
+      return
+    clearLegacyState()
+    setLegacy(null)
+  }
 
   return (
     <main>
@@ -46,13 +103,44 @@ export function PlanScreen({
           <p className="brand">
             <span aria-hidden="true">🎁</span> Present Planner
           </p>
-          <h1>{planName ?? fallbackName}</h1>
+          {/* The plan name doubles as the plan switcher. It stays inside
+              the page's h1, so screen readers still find a main heading. */}
+          <h1>
+            <label className="plan-switch">
+              <span className="visually-hidden">Plan</span>
+              <select
+                value={planId}
+                onChange={(e) =>
+                  e.target.value === NEW_PLAN
+                    ? onNewPlan()
+                    : onSwitchPlan(e.target.value)
+                }
+              >
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.id}>
+                    {plan.id === planId ? planName : plan.name}
+                  </option>
+                ))}
+                <option value={NEW_PLAN}>+ New plan…</option>
+              </select>
+            </label>
+          </h1>
         </div>
         <div className="top-bar-actions">
           <span className={`sync-pill sync-${status}`} role="status">
             <span className="sync-dot" aria-hidden="true" />
             {STATUS_LABEL[status]}
           </span>
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              reloadMembers()
+              setMembersOpen(true)
+            }}
+          >
+            Members{members.length > 0 ? ` · ${members.length}` : ''}
+          </button>
           <button
             type="button"
             className="ghost"
@@ -74,10 +162,15 @@ export function PlanScreen({
         </p>
       )}
       {status === 'gone' && (
-        <p className="banner banner-error" role="alert">
-          This plan is no longer available to you. It may have been deleted, or
-          you were removed from it.
-        </p>
+        <div className="banner banner-error" role="alert">
+          <span>
+            This plan is no longer available to you. It may have been deleted,
+            or you were removed from it.
+          </span>
+          <button type="button" className="ghost" onClick={onLeftPlan}>
+            Go to my plans
+          </button>
+        </div>
       )}
       {error && (
         <div className="banner banner-error" role="alert">
@@ -87,11 +180,54 @@ export function PlanScreen({
           </button>
         </div>
       )}
+      {legacy && status === 'live' && (
+        <div className="banner banner-import" role="status">
+          <span>
+            This device has a list from before accounts:{' '}
+            {count(legacy.people.length, 'person', 'people')} and{' '}
+            {count(legacy.gifts.length, 'gift', 'gifts')}. Import it into{' '}
+            {planName}?
+          </span>
+          <span className="row">
+            <button
+              type="button"
+              disabled={importing}
+              onClick={() => void importOldList()}
+            >
+              {importing ? 'Importing…' : 'Import'}
+            </button>
+            <button
+              type="button"
+              className="ghost"
+              disabled={importing}
+              onClick={discardOldList}
+            >
+              Discard
+            </button>
+          </span>
+        </div>
+      )}
 
       <PlannerView
         state={state}
         dispatch={dispatch}
         readOnly={status === 'offline' || status === 'gone'}
+        members={members}
+        myUserId={myUserId}
+      />
+
+      <MembersDialog
+        db={db}
+        planId={planId}
+        planName={planName}
+        members={members}
+        myUserId={myUserId}
+        open={membersOpen}
+        onClose={() => setMembersOpen(false)}
+        onLeft={() => {
+          setMembersOpen(false)
+          onLeftPlan()
+        }}
       />
     </main>
   )

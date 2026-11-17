@@ -295,6 +295,7 @@ export type Database = {
         Args: { p_display_name: string; p_token: string }
         Returns: string
       }
+      next_purchaser_slot: { Args: { p_plan_id: string }; Returns: number }
     }
     Enums: {
       [_ in never]: never

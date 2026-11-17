@@ -9,6 +9,7 @@ import type {
   PlannerAction,
   Purchaser,
 } from '../domain/planner.ts'
+import type { Member } from '../plans/usePlanMembers.ts'
 import { BudgetMeter } from './BudgetMeter.tsx'
 
 interface Props {
@@ -20,6 +21,9 @@ interface Props {
   purchasers: Purchaser[]
   /** Who a newly added gift is allocated to. */
   defaultPurchaserId: string | null
+  /** Plan members, offered when saying whose account this person is. */
+  members: Member[]
+  myUserId: string
   dispatch: Dispatch<PlannerAction>
 }
 
@@ -40,6 +44,8 @@ export function PersonCard({
   visibleGifts,
   purchasers,
   defaultPurchaserId,
+  members,
+  myUserId,
   dispatch,
 }: Props) {
   const [title, setTitle] = useState('')
@@ -51,6 +57,10 @@ export function PersonCard({
   const overBy = budget !== null ? spentPence - budget : 0
   const allSorted = gifts.length > 0 && ideaCount === 0
   const hiddenCount = gifts.length - visibleGifts.length
+  // You can't link a card to yourself: you'd lose sight of it, and the
+  // database refuses it anyway.
+  const linkable = members.filter((m) => m.userId !== myUserId)
+  const linkedMember = members.find((m) => m.userId === person.memberUserId)
 
   function addGift(event: FormEvent) {
     event.preventDefault()
@@ -95,7 +105,17 @@ export function PersonCard({
         </span>
         <div className="card-title">
           <h2>{person.name}</h2>
-          {allSorted && <span className="badge">✓ All sorted</span>}
+          <div className="badges">
+            {allSorted && <span className="badge">✓ All sorted</span>}
+            {linkedMember && (
+              <span
+                className="badge badge-hidden"
+                title={`${linkedMember.displayName} can't see this card or its gifts`}
+              >
+                🔒 Hidden from {linkedMember.displayName}
+              </span>
+            )}
+          </div>
         </div>
         <button
           type="button"
@@ -106,6 +126,30 @@ export function PersonCard({
           Remove
         </button>
       </header>
+
+      {linkable.length > 0 && (
+        <label className="link-field">
+          <span>Uses the app as</span>
+          <select
+            className="pill"
+            value={person.memberUserId ?? ''}
+            onChange={(event) =>
+              dispatch({
+                type: 'personMemberLinked',
+                personId: person.id,
+                memberUserId: event.target.value || null,
+              })
+            }
+          >
+            <option value="">Not in this plan</option>
+            {linkable.map((member) => (
+              <option key={member.userId} value={member.userId}>
+                {member.displayName} (hide their gifts from them)
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <div className="budget">
         <p className="spend">

@@ -103,6 +103,15 @@ describe('toMutation', () => {
       },
     ],
     [
+      { type: 'personMemberLinked', personId: 'p1', memberUserId: 'u2' },
+      {
+        table: 'people',
+        op: 'update',
+        id: 'p1',
+        values: { member_user_id: 'u2' },
+      },
+    ],
+    [
       { type: 'purchaserAdded', purchaser },
       {
         table: 'purchasers',

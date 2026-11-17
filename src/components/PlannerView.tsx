@@ -3,6 +3,7 @@ import type { Dispatch, FormEvent } from 'react'
 import { formatPence, parsePounds } from '../domain/money.ts'
 import { giftsFor, totalsFor } from '../domain/planner.ts'
 import type { Gift, PlannerAction, PlannerState } from '../domain/planner.ts'
+import type { Member } from '../plans/usePlanMembers.ts'
 import { BudgetMeter } from './BudgetMeter.tsx'
 import { PersonCard } from './PersonCard.tsx'
 import { PurchaserBar, SHOW_ALL, UNASSIGNED } from './PurchaserBar.tsx'
@@ -20,10 +21,18 @@ interface Props {
   dispatch: Dispatch<PlannerAction>
   /** True while offline: everything stays readable, nothing is editable. */
   readOnly: boolean
+  members: Member[]
+  myUserId: string
 }
 
 /** The planner itself: summary, buyers, and the gift cards or totals table. */
-export function PlannerView({ state, dispatch, readOnly }: Props) {
+export function PlannerView({
+  state,
+  dispatch,
+  readOnly,
+  members,
+  myUserId,
+}: Props) {
   // The filter is view state, not planner data, so it stays out of the reducer
   // and isn't saved: reopening the app always shows everything.
   const [filter, setFilter] = useState<PurchaserFilter>(SHOW_ALL)
@@ -132,6 +141,7 @@ export function PlannerView({ state, dispatch, readOnly }: Props) {
           onFilterChange={setFilter}
           dispatch={dispatch}
           readOnly={readOnly}
+          myUserId={myUserId}
         />
       )}
 
@@ -224,6 +234,8 @@ export function PlannerView({ state, dispatch, readOnly }: Props) {
                   defaultPurchaserId={
                     filtering && filter !== UNASSIGNED ? filter : null
                   }
+                  members={members}
+                  myUserId={myUserId}
                   dispatch={dispatch}
                 />
               ))}

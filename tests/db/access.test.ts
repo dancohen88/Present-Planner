@@ -289,6 +289,73 @@ describe('the surprise rule', () => {
   })
 })
 
+describe('members are buyers', () => {
+  it('adds each member as a buyer linked to their account, in the next free colour', async () => {
+    const dan = await newUser('Dan')
+    const jo = await newUser('Jo')
+    const planId = await createPlan(dan)
+    // A hand-added buyer takes colour 1, so Jo should get colour 2.
+    await dan.db
+      .from('purchasers')
+      .insert({ plan_id: planId, name: 'Grandma', slot: 1 })
+    await invite(dan, jo, planId)
+
+    const { data } = await dan.db
+      .from('purchasers')
+      .select('name, slot, user_id')
+      .eq('plan_id', planId)
+      .order('slot')
+    expect(data).toEqual([
+      { name: 'Dan', slot: 0, user_id: dan.id },
+      { name: 'Grandma', slot: 1, user_id: null },
+      { name: 'Jo', slot: 2, user_id: jo.id },
+    ])
+  })
+
+  it('does not add a second buyer when someone opens the invite twice', async () => {
+    const dan = await newUser('Dan')
+    const jo = await newUser('Jo')
+    const planId = await createPlan(dan)
+    const { data: link } = await dan.db
+      .from('plan_invites')
+      .insert({ plan_id: planId })
+      .select('token')
+      .single()
+    for (let i = 0; i < 2; i++) {
+      const { error } = await jo.db.rpc('join_plan', {
+        p_token: link!.token,
+        p_display_name: 'Jo',
+      })
+      expect(error).toBeNull()
+    }
+    const { data } = await dan.db
+      .from('purchasers')
+      .select('name')
+      .eq('plan_id', planId)
+    expect(data?.map((p) => p.name).sort()).toEqual(['Dan', 'Jo'])
+  })
+
+  it('keeps a departed member as a buyer, no longer linked to them', async () => {
+    const dan = await newUser('Dan')
+    const jo = await newUser('Jo')
+    const planId = await createPlan(dan)
+    await invite(dan, jo, planId)
+    await dan.db
+      .from('plan_members')
+      .delete()
+      .eq('plan_id', planId)
+      .eq('user_id', jo.id)
+
+    const { data } = await dan.db
+      .from('purchasers')
+      .select('name, user_id')
+      .eq('plan_id', planId)
+      .eq('name', 'Jo')
+      .single()
+    expect(data).toEqual({ name: 'Jo', user_id: null })
+  })
+})
+
 describe('data integrity', () => {
   let dan: TestUser
   let planId: string
@@ -310,10 +377,10 @@ describe('data integrity', () => {
   it('refuses two buyers with the same colour but allows shared overflow', async () => {
     const first = await dan.db
       .from('purchasers')
-      .insert({ plan_id: planId, name: 'A', slot: 0 })
+      .insert({ plan_id: planId, name: 'A', slot: 3 })
     const clash = await dan.db
       .from('purchasers')
-      .insert({ plan_id: planId, name: 'B', slot: 0 })
+      .insert({ plan_id: planId, name: 'B', slot: 3 })
     const overflow = await dan.db.from('purchasers').insert([
       { plan_id: planId, name: 'C', slot: 8 },
       { plan_id: planId, name: 'D', slot: 8 },

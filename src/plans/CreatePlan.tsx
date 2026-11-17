@@ -7,9 +7,11 @@ interface Props {
   /** Pre-fills "Your name", e.g. from the email address. */
   suggestedName: string
   onCreated: (planId: string) => void
+  /** Shown as "Back" when the person already has other plans. */
+  onCancel?: () => void
 }
 
-export function CreatePlan({ db, suggestedName, onCreated }: Props) {
+export function CreatePlan({ db, suggestedName, onCreated, onCancel }: Props) {
   // A function, so the date is read once on mount rather than every render.
   const [planName, setPlanName] = useState(
     () => `Christmas ${new Date().getFullYear()}`,
@@ -71,6 +73,11 @@ export function CreatePlan({ db, suggestedName, onCreated }: Props) {
         <button type="submit" disabled={busy}>
           {busy ? 'Creating…' : 'Create plan'}
         </button>
+        {onCancel && (
+          <button type="button" className="link" onClick={onCancel}>
+            Back to my plans
+          </button>
+        )}
         {error && (
           <p className="error" role="alert">
             {error}

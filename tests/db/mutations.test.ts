@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { runMutation, toMutation } from '../../src/data/mutations.ts'
 import { fetchPlan } from '../../src/data/fetchPlan.ts'
-import { emptyState, plannerReducer } from '../../src/domain/planner.ts'
+import { plannerReducer } from '../../src/domain/planner.ts'
 import type { PlannerAction, PlannerState } from '../../src/domain/planner.ts'
 import { newUser } from './local.ts'
 import type { TestUser } from './local.ts'
@@ -18,7 +18,10 @@ async function loadPlan(user: TestUser, planId: string): Promise<PlannerState> {
 
 describe('reducer and database agree', () => {
   let dan: TestUser
+  let jo: TestUser
   let planId: string
+  // A new plan isn't empty: its creator is already one of the buyers.
+  let initial: PlannerState
 
   beforeAll(async () => {
     dan = await newUser('Dan')
@@ -28,6 +31,15 @@ describe('reducer and database agree', () => {
     })
     if (error) throw error
     planId = data
+    // Jo joins, so a card can be linked to Jo's account.
+    jo = await newUser('Jo')
+    const { data: link } = await dan.db
+      .from('plan_invites')
+      .insert({ plan_id: planId })
+      .select('token')
+      .single()
+    await jo.db.rpc('join_plan', { p_token: link!.token, p_display_name: 'Jo' })
+    initial = await loadPlan(dan, planId)
   })
 
   it('ends in the same state after every kind of action', async () => {
@@ -55,11 +67,11 @@ describe('reducer and database agree', () => {
       },
       {
         type: 'purchaserAdded',
-        purchaser: { id: danBuyer, name: 'Dan', slot: 0, userId: dan.id },
+        purchaser: { id: danBuyer, name: 'Dad', slot: 2, userId: null },
       },
       {
         type: 'purchaserAdded',
-        purchaser: { id: joBuyer, name: 'Jo', slot: 1, userId: null },
+        purchaser: { id: joBuyer, name: 'Grandma', slot: 3, userId: null },
       },
       {
         type: 'giftAdded',
@@ -98,20 +110,32 @@ describe('reducer and database agree', () => {
       { type: 'giftPurchaserSet', giftId: gloves, purchaserId: danBuyer },
       { type: 'budgetSet', personId: alex, budgetPence: 4000 },
       { type: 'budgetSet', personId: mum, budgetPence: null },
-      // Jo's gifts become unassigned on both sides.
+      // Alex is Jo: hidden from Jo, still visible to Dan.
+      { type: 'personMemberLinked', personId: alex, memberUserId: jo.id },
+      { type: 'personMemberLinked', personId: alex, memberUserId: null },
+      { type: 'personMemberLinked', personId: mum, memberUserId: jo.id },
+      // Grandma's gifts become unassigned on both sides.
       { type: 'purchaserRemoved', purchaserId: joBuyer },
       // Alex's headphones go with Alex on both sides.
       { type: 'personRemoved', personId: alex },
       { type: 'giftRemoved', giftId: cookbook },
     ]
 
-    let expected = emptyState
+    expect(initial.purchasers).toEqual([
+      expect.objectContaining({ name: 'Dan', slot: 0, userId: dan.id }),
+      expect.objectContaining({ name: 'Jo', slot: 1, userId: jo.id }),
+    ])
+    let expected = initial
     for (const action of actions) {
       expected = plannerReducer(expected, action)
       await runMutation(dan.db, toMutation(action, planId))
     }
 
     expect(await loadPlan(dan, planId)).toEqual(expected)
+    // Jo can't see Mum's card or gifts now it's linked to Jo.
+    const joView = await loadPlan(jo, planId)
+    expect(joView.people).toEqual([])
+    expect(joView.gifts).toEqual([])
     // A sanity check that the sequence did something.
     expect(expected.gifts).toHaveLength(1)
     expect(expected.gifts[0]).toMatchObject({

@@ -65,6 +65,12 @@ export type PlannerAction =
   | { type: 'personAdded'; person: Person }
   | { type: 'personRemoved'; personId: string }
   | { type: 'budgetSet'; personId: string; budgetPence: number | null }
+  /** Says which member's account a person is; null unlinks them. */
+  | {
+      type: 'personMemberLinked'
+      personId: string
+      memberUserId: string | null
+    }
   | { type: 'purchaserAdded'; purchaser: Purchaser }
   | { type: 'purchaserRemoved'; purchaserId: string }
   | { type: 'giftAdded'; gift: Gift }
@@ -93,6 +99,15 @@ export function plannerReducer(
         people: state.people.map((p) =>
           p.id === action.personId
             ? { ...p, budgetPence: action.budgetPence }
+            : p,
+        ),
+      }
+    case 'personMemberLinked':
+      return {
+        ...state,
+        people: state.people.map((p) =>
+          p.id === action.personId
+            ? { ...p, memberUserId: action.memberUserId }
             : p,
         ),
       }

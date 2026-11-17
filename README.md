@@ -43,8 +43,10 @@ codes, are caught at http://127.0.0.1:54324 rather than sent.
   one database write, and `usePlannerSync.ts` keeps an open plan in sync:
   changes show at once, are written to the database, and other members'
   changes stream in live.
-- `src/auth/` is sign-in by emailed code; `src/plans/` picks or creates the
-  plan to open.
+- `src/auth/` is sign-in by emailed code. `src/plans/` lists, creates and
+  switches plans, and handles members, invite links and joining.
+- `src/routing/` reads the screen from the part of the address after `#`
+  (`#/plan/<id>`, `#/join/<token>`), which works on any static host.
 - `supabase/migrations/` defines the tables and the row-level security rules
   that decide who can see what, including hiding gifts from the person
   they're for.
@@ -56,6 +58,7 @@ Amounts are stored as whole pence, not pounds, so sums stay exact.
 
 ## Current limits
 
-Each account sees its own plans, synced live across its devices, but there is
-no way yet to invite anyone else to a plan or switch between several plans.
-Editing needs a connection; offline, the last synced copy is read-only.
+Editing needs a connection; offline, the last synced copy is read-only. If a
+card is linked to someone while they have the plan open, they keep seeing
+what was already on it until their app next reloads the plan; nothing added
+afterwards reaches them. The app isn't installable or hosted yet.
