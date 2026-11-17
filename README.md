@@ -22,6 +22,7 @@ development it runs locally in Docker, so Docker must be running.
 
 ```sh
 npm run db:start   # start the local stack (first run downloads images)
+npm run db:env     # point the app at it (writes .env.local), then npm run dev
 npm run test:db    # check the access rules against the local database
 npm run db:reset   # wipe the local database and re-apply the migrations
 npm run db:types   # regenerate src/data/database.types.ts after a schema change
@@ -29,8 +30,8 @@ npm run db:stop
 ```
 
 The schema and access rules are in `supabase/migrations/`. The local
-dashboard is at http://127.0.0.1:54323 and sign-in emails are caught at
-http://127.0.0.1:54324.
+dashboard is at http://127.0.0.1:54323. Sign-in emails, with their 6-digit
+codes, are caught at http://127.0.0.1:54324 rather than sent.
 
 ## How it's put together
 
@@ -38,19 +39,23 @@ http://127.0.0.1:54324.
   and no storage. `planner.ts` defines people, purchasers, gifts and the
   reducer that applies every change; `money.ts` parses and formats amounts.
 - `src/data/` connects the domain to the database: `rows.ts` converts rows
-  to domain types and back, and `mutations.ts` turns each reducer action into
-  one database write.
+  to domain types and back, `mutations.ts` turns each reducer action into
+  one database write, and `usePlannerSync.ts` keeps an open plan in sync:
+  changes show at once, are written to the database, and other members'
+  changes stream in live.
+- `src/auth/` is sign-in by emailed code; `src/plans/` picks or creates the
+  plan to open.
 - `supabase/migrations/` defines the tables and the row-level security rules
   that decide who can see what, including hiding gifts from the person
   they're for.
-- `src/storage.ts` saves the whole state to the browser's `localStorage`, and
-  fills in fields that older saved data doesn't have.
+- `src/storage.ts` keeps a copy of each plan in the browser, so the last
+  synced list can be read offline.
 - `src/App.tsx` and `src/components/` are the UI.
 
 Amounts are stored as whole pence, not pounds, so sums stay exact.
 
 ## Current limits
 
-The database layer is built and tested, but the app doesn't use it yet: data
-still lives only in the browser it was entered in. Sign-in, live sync and
-sharing come next.
+Each account sees its own plans, synced live across its devices, but there is
+no way yet to invite anyone else to a plan or switch between several plans.
+Editing needs a connection; offline, the last synced copy is read-only.

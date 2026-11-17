@@ -1,241 +1,122 @@
-import { useEffect, useReducer, useState } from 'react'
-import type { FormEvent } from 'react'
-import { BudgetMeter } from './components/BudgetMeter.tsx'
-import { PersonCard } from './components/PersonCard.tsx'
-import {
-  PurchaserBar,
-  SHOW_ALL,
-  UNASSIGNED,
-} from './components/PurchaserBar.tsx'
-import type { PurchaserFilter } from './components/PurchaserBar.tsx'
-import { TotalsTable } from './components/TotalsTable.tsx'
-import { formatPence, parsePounds } from './domain/money.ts'
-import { giftsFor, plannerReducer, totalsFor } from './domain/planner.ts'
-import type { Gift } from './domain/planner.ts'
-import { loadState, saveState } from './storage.ts'
-
-function matchesFilter(gift: Gift, filter: PurchaserFilter): boolean {
-  if (filter === SHOW_ALL) return true
-  if (filter === UNASSIGNED) return gift.purchaserId === null
-  return gift.purchaserId === filter
-}
+import { useState } from 'react'
+import type { Session } from '@supabase/supabase-js'
+import { SignIn } from './auth/SignIn.tsx'
+import { useSession } from './auth/useSession.ts'
+import { supabase } from './data/supabase.ts'
+import type { Db } from './data/supabase.ts'
+import { CreatePlan } from './plans/CreatePlan.tsx'
+import { PlanScreen } from './plans/PlanScreen.tsx'
+import { usePlans } from './plans/usePlans.ts'
+import { forgetPlans, loadLastPlanId, saveLastPlanId } from './storage.ts'
 
 function App() {
-  // The third argument is a lazy initialiser: loadState runs once on mount
-  // rather than on every render.
-  const [state, dispatch] = useReducer(plannerReducer, undefined, loadState)
-  // The filter is view state, not planner data, so it stays out of the reducer
-  // and isn't saved: reopening the app always shows everything.
-  const [filter, setFilter] = useState<PurchaserFilter>(SHOW_ALL)
-  const [view, setView] = useState<'gifts' | 'totals'>('gifts')
-  const [name, setName] = useState('')
-  const [budget, setBudget] = useState('')
-  const [budgetInvalid, setBudgetInvalid] = useState(false)
+  if (!supabase) return <NotConfigured />
+  return <SignedInGate db={supabase} />
+}
 
-  useEffect(() => {
-    saveState(state)
-  }, [state])
+function SignedInGate({ db }: { db: Db }) {
+  const session = useSession(db)
+  if (session === undefined) return <Loading />
+  if (session === null) return <SignIn db={db} />
+  // Keyed by user, so signing in as someone else starts from scratch.
+  return <PlanGate key={session.user.id} db={db} session={session} />
+}
 
-  const totals = totalsFor(state.gifts)
-  const sortedCount = totals.giftCount - totals.ideaCount
-  const totalBudgetPence = state.people.reduce(
-    (sum, person) => sum + (person.budgetPence ?? 0),
-    0,
-  )
+/** "dan.cohen@…" → "Dan" */
+function nameFromEmail(email: string | undefined): string {
+  const first = (email ?? '').split('@')[0].split(/[._+-]/)[0]
+  return first ? first.charAt(0).toUpperCase() + first.slice(1) : ''
+}
 
-  const filtering = filter !== SHOW_ALL
-  const filterName =
-    filter === UNASSIGNED
-      ? 'nobody yet'
-      : state.purchasers.find((p) => p.id === filter)?.name
-  const cards = state.people
-    .map((person) => {
-      const gifts = giftsFor(state, person.id)
-      return {
-        person,
-        gifts,
-        visibleGifts: gifts.filter((gift) => matchesFilter(gift, filter)),
-      }
-    })
-    // While filtering, people with nothing matching drop out of view.
-    .filter((card) => !filtering || card.visibleGifts.length > 0)
+function PlanGate({ db, session }: { db: Db; session: Session }) {
+  const { result, reload } = usePlans(db)
+  const [chosenId, setChosenId] = useState<string | null>(loadLastPlanId)
 
-  function addPerson(event: FormEvent) {
-    event.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) return
-    const budgetPence = budget.trim() === '' ? null : parsePounds(budget)
-    if (budget.trim() !== '' && budgetPence === null) {
-      setBudgetInvalid(true)
-      return
-    }
-    dispatch({
-      type: 'personAdded',
-      person: {
-        id: crypto.randomUUID(),
-        name: trimmed,
-        budgetPence,
-        memberUserId: null,
-      },
-    })
-    setName('')
-    setBudget('')
-    setBudgetInvalid(false)
+  async function signOut() {
+    forgetPlans()
+    // 'local' ends the session on this device only, and works offline.
+    await db.auth.signOut({ scope: 'local' })
   }
 
+  if (result.status === 'loading') return <Loading />
+
+  // Offline at start-up: open the last plan from its cached copy.
+  const plans =
+    result.status === 'ready'
+      ? result.plans
+      : chosenId
+        ? [{ id: chosenId, name: 'Your plan' }]
+        : []
+
+  if (plans.length === 0) {
+    if (result.status === 'offline') return <OfflineNoCache onRetry={reload} />
+    return (
+      <CreatePlan
+        db={db}
+        suggestedName={nameFromEmail(session.user.email)}
+        onCreated={(id) => {
+          saveLastPlanId(id)
+          setChosenId(id)
+          void reload()
+        }}
+      />
+    )
+  }
+
+  const plan = plans.find((p) => p.id === chosenId) ?? plans[0]
+  if (plan.id !== chosenId) saveLastPlanId(plan.id)
+
   return (
-    <main>
-      <header className="page-header">
-        <h1>
-          <span aria-hidden="true">🎁</span> Present Planner
-        </h1>
-      </header>
+    <PlanScreen
+      // A new key throws away the old plan's state and live channel.
+      key={plan.id}
+      db={db}
+      planId={plan.id}
+      fallbackName={plan.name}
+      email={session.user.email}
+      onSignOut={() => void signOut()}
+    />
+  )
+}
 
-      {state.people.length > 0 && (
-        <section className="summary" aria-label="Overall progress">
-          <div className="tile">
-            <p className="eyebrow">Spent</p>
-            <p className="tile-value">
-              {formatPence(totals.spentPence)}
-              {totalBudgetPence > 0 && (
-                <span className="tile-of">
-                  {' '}
-                  of {formatPence(totalBudgetPence)}
-                </span>
-              )}
-            </p>
-            {totalBudgetPence > 0 && (
-              <BudgetMeter
-                spentPence={totals.spentPence}
-                plannedPence={totals.plannedPence}
-                budgetPence={totalBudgetPence}
-                label="Total budget"
-              />
-            )}
-          </div>
-          <div className="tile">
-            <p className="eyebrow">Still to buy</p>
-            <p className="tile-value">{totals.ideaCount}</p>
-            <p className="tile-note">
-              {totals.plannedPence > 0
-                ? `about ${formatPence(totals.plannedPence)}`
-                : totals.ideaCount === 0 && totals.giftCount > 0
-                  ? 'nothing left'
-                  : ' '}
-            </p>
-          </div>
-          <div className="tile">
-            <p className="eyebrow">Sorted</p>
-            <p className="tile-value">
-              {sortedCount}
-              <span className="tile-of"> of {totals.giftCount}</span>
-            </p>
-            <p className="tile-note">bought, wrapped or given</p>
-          </div>
-        </section>
-      )}
+function Loading() {
+  return (
+    <main className="gate">
+      <p className="muted" role="status">
+        Loading…
+      </p>
+    </main>
+  )
+}
 
-      {state.people.length > 0 && (
-        <PurchaserBar
-          state={state}
-          filter={filter}
-          onFilterChange={setFilter}
-          dispatch={dispatch}
-        />
-      )}
+function OfflineNoCache({ onRetry }: { onRetry: () => void }) {
+  return (
+    <main className="gate">
+      <div className="gate-card stack">
+        <h1>You're offline</h1>
+        <p className="muted">
+          Your plans haven't been saved on this device yet. Connect once and
+          they'll be available offline after that.
+        </p>
+        <button type="button" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
+    </main>
+  )
+}
 
-      {state.people.length > 0 && (
-        <div className="view-switch" role="group" aria-label="View">
-          <button
-            type="button"
-            aria-pressed={view === 'gifts'}
-            onClick={() => setView('gifts')}
-          >
-            Gifts
-          </button>
-          <button
-            type="button"
-            aria-pressed={view === 'totals'}
-            onClick={() => setView('totals')}
-          >
-            Totals by buyer
-          </button>
-        </div>
-      )}
-
-      {view === 'totals' && state.people.length > 0 ? (
-        <TotalsTable state={state} filter={filter} />
-      ) : (
-        <>
-          <form className="row add-person" onSubmit={addPerson}>
-            <input
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              placeholder="Who are you buying for?"
-              aria-label="Person's name"
-            />
-            <input
-              className="price"
-              value={budget}
-              onChange={(event) => {
-                setBudget(event.target.value)
-                setBudgetInvalid(false)
-              }}
-              placeholder="Budget £"
-              inputMode="decimal"
-              aria-label="Budget in pounds (optional)"
-              aria-invalid={budgetInvalid}
-            />
-            <button type="submit">Add person</button>
-          </form>
-          {budgetInvalid && (
-            <p className="error">
-              Enter the budget as pounds, like 50 or 49.99.
-            </p>
-          )}
-
-          {filtering && (
-            <p className="filter-note">
-              Showing gifts allocated to <strong>{filterName}</strong>.{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => setFilter(SHOW_ALL)}
-              >
-                Show all
-              </button>
-            </p>
-          )}
-
-          {state.people.length === 0 ? (
-            <div className="empty">
-              <p className="empty-mark" aria-hidden="true">
-                🎁
-              </p>
-              <p className="empty-title">No one on the list yet</p>
-              <p className="muted">Add the first person you're buying for.</p>
-            </div>
-          ) : cards.length === 0 ? (
-            <p className="muted empty-filter">Nothing matches this filter.</p>
-          ) : (
-            <div className="cards">
-              {cards.map(({ person, gifts, visibleGifts }) => (
-                <PersonCard
-                  key={person.id}
-                  person={person}
-                  gifts={gifts}
-                  visibleGifts={visibleGifts}
-                  purchasers={state.purchasers}
-                  defaultPurchaserId={
-                    filtering && filter !== UNASSIGNED ? filter : null
-                  }
-                  dispatch={dispatch}
-                />
-              ))}
-            </div>
-          )}
-        </>
-      )}
+function NotConfigured() {
+  return (
+    <main className="gate">
+      <div className="gate-card stack">
+        <h1>Not connected to a database</h1>
+        <p className="muted">
+          This build has no Supabase settings. For local development, start the
+          database with <code>npm run db:start</code>, then run{' '}
+          <code>npm run db:env</code> and restart the dev server.
+        </p>
+      </div>
     </main>
   )
 }

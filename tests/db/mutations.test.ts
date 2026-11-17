@@ -4,26 +4,16 @@
 import { randomUUID } from 'node:crypto'
 import { beforeAll, describe, expect, it } from 'vitest'
 import { runMutation, toMutation } from '../../src/data/mutations.ts'
-import { stateFromRows } from '../../src/data/rows.ts'
+import { fetchPlan } from '../../src/data/fetchPlan.ts'
 import { emptyState, plannerReducer } from '../../src/domain/planner.ts'
 import type { PlannerAction, PlannerState } from '../../src/domain/planner.ts'
 import { newUser } from './local.ts'
 import type { TestUser } from './local.ts'
 
 async function loadPlan(user: TestUser, planId: string): Promise<PlannerState> {
-  const [people, purchasers, gifts] = await Promise.all([
-    user.db.from('people').select().eq('plan_id', planId),
-    user.db.from('purchasers').select().eq('plan_id', planId),
-    user.db.from('gifts').select().eq('plan_id', planId),
-  ])
-  for (const result of [people, purchasers, gifts]) {
-    if (result.error) throw result.error
-  }
-  return stateFromRows({
-    people: people.data!,
-    purchasers: purchasers.data!,
-    gifts: gifts.data!,
-  })
+  const plan = await fetchPlan(user.db, planId)
+  if (!plan) throw new Error('Plan not visible')
+  return plan.state
 }
 
 describe('reducer and database agree', () => {

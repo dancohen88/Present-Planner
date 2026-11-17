@@ -205,7 +205,9 @@ export function PersonCard({
                     <span className="buyer">
                       <span
                         className={
-                          purchaser ? `dot slot-${purchaser.slot}` : 'dot dot-empty'
+                          purchaser
+                            ? `dot slot-${purchaser.slot}`
+                            : 'dot dot-empty'
                         }
                       />
                       <select
