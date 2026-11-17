@@ -1153,3 +1153,50 @@ button.ghost.danger {
   padding-inline: 0;
   color: var(--danger);
 }
+
+/* ---------- Phones (phase 4) ---------- */
+
+/* Keep content clear of the notch and home bar when installed full-screen. */
+main {
+  padding-top: max(32px, env(safe-area-inset-top));
+  padding-left: max(16px, env(safe-area-inset-left));
+  padding-right: max(16px, env(safe-area-inset-right));
+  padding-bottom: max(80px, env(safe-area-inset-bottom));
+}
+
+/* Touch screens: fingers need bigger targets than mouse pointers. */
+@media (pointer: coarse) {
+  /* iPhones zoom the page when you tap a field whose text is under 16px. */
+  input,
+  select,
+  textarea,
+  /* These two set their own smaller size, which would otherwise win. */
+  .budget-field input,
+  .invite-link {
+    font-size: 16px;
+  }
+
+  .budget-field input {
+    padding-block: 8px;
+  }
+
+  select.pill {
+    min-height: 40px;
+    font-size: 15px;
+  }
+
+  button.ghost,
+  .chip-remove,
+  .chip-main {
+    min-height: 44px;
+  }
+
+  button.ghost,
+  .chip-remove {
+    min-width: 44px;
+  }
+
+  .view-switch button {
+    min-height: 40px;
+  }
+}
