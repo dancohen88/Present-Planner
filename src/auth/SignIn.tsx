@@ -4,6 +4,8 @@ import type { Db } from '../data/supabase.ts'
 
 interface Props {
   db: Db
+  /** True when they arrived through an invite link. */
+  invited: boolean
 }
 
 /**
@@ -11,7 +13,7 @@ interface Props {
  * than a link, because a link tapped in a mail app opens the phone's
  * browser instead of the installed app.
  */
-export function SignIn({ db }: Props) {
+export function SignIn({ db, invited }: Props) {
   const [step, setStep] = useState<'email' | 'code'>('email')
   const [email, setEmail] = useState('')
   const [code, setCode] = useState('')
@@ -75,7 +77,9 @@ export function SignIn({ db }: Props) {
           <form className="stack" onSubmit={sendCode}>
             <h1>Sign in</h1>
             <p className="muted">
-              We'll email you a 6-digit code. No password needed.
+              {invited
+                ? "You've been invited to plan gifts together. Sign in to join: we'll email you a 6-digit code, no password needed."
+                : "We'll email you a 6-digit code. No password needed."}
             </p>
             <label className="field">
               <span>Email</span>

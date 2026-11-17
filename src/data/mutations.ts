@@ -40,6 +40,15 @@ export function toMutation(action: PlannerAction, planId: string): Mutation {
         id: action.personId,
         values: { budget_pence: action.budgetPence },
       }
+    case 'personMemberLinked':
+      // From then on the database hides this person and their gifts from
+      // that member (see the surprise rule in the first migration).
+      return {
+        table: 'people',
+        op: 'update',
+        id: action.personId,
+        values: { member_user_id: action.memberUserId },
+      }
     case 'purchaserAdded':
       return {
         table: 'purchasers',

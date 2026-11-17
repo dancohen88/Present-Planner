@@ -19,6 +19,7 @@ interface Props {
   dispatch: Dispatch<PlannerAction>
   /** Offline: filtering still works, adding and removing buyers doesn't. */
   readOnly: boolean
+  myUserId: string
 }
 
 function workload(ideaCount: number, giftCount: number): string {
@@ -33,6 +34,7 @@ export function PurchaserBar({
   onFilterChange,
   dispatch,
   readOnly,
+  myUserId,
 }: Props) {
   const [name, setName] = useState('')
 
@@ -87,7 +89,12 @@ export function PurchaserBar({
                 onClick={() => toggle(purchaser.id)}
               >
                 <span className={`dot slot-${purchaser.slot}`} />
-                <span className="chip-name">{purchaser.name}</span>
+                <span className="chip-name">
+                  {purchaser.name}
+                  {purchaser.userId === myUserId && (
+                    <span className="chip-you"> (you)</span>
+                  )}
+                </span>
                 <span className="chip-count">
                   {workload(totals.ideaCount, totals.giftCount)}
                 </span>

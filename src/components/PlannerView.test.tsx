@@ -10,7 +10,13 @@ const noop = () => {}
 
 it('renders the empty state', () => {
   const html = renderToString(
-    <PlannerView state={emptyState} dispatch={noop} readOnly={false} />,
+    <PlannerView
+      state={emptyState}
+      dispatch={noop}
+      readOnly={false}
+      members={[]}
+      myUserId="u1"
+    />,
   )
   expect(html).toContain('No one on the list yet')
 })
@@ -31,7 +37,13 @@ it('disables editing while read-only, but still shows the gifts', () => {
     ],
   }
   const html = renderToString(
-    <PlannerView state={state} dispatch={noop} readOnly={true} />,
+    <PlannerView
+      state={state}
+      dispatch={noop}
+      readOnly={true}
+      members={[]}
+      myUserId="u1"
+    />,
   )
   expect(html).toContain('Cookbook')
   expect(html).toMatch(/<fieldset class="edit-area[^"]*" disabled=""/)
