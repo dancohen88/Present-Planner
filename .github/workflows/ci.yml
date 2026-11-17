@@ -39,3 +39,12 @@ jobs:
       - run: npm run test:db
       - run: npx playwright-core install --with-deps chromium-headless-shell
       - run: npm run test:e2e
+      # If anything failed, show what the database services were doing.
+      - name: Supabase logs (on failure)
+        if: failure()
+        run: |
+          for service in realtime auth db; do
+            echo "::group::$service"
+            docker logs "supabase_${service}_Present_Planner" --tail 150 2>&1 || true
+            echo "::endgroup::"
+          done
