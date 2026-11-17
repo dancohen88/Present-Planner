@@ -14,7 +14,9 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
-    "db:env": "node scripts/local-env.mjs"
+    "db:env": "node scripts/local-env.mjs",
+    "icons": "pwa-assets-generator",
+    "test:e2e": "vitest run --config vitest.e2e.config.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
@@ -25,12 +27,15 @@
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.90.0",
+    "playwright-core": "^1.65.1",
     "prettier": "^3.6.2",
     "supabase": "^3.2.0",
     "typescript": "~7.0.2",
     "vite": "^8.3.6",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.1.0"
   }
 }

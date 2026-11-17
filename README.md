@@ -1,6 +1,6 @@
 # Present Planner
 
-A gift planner: who you're buying for, what you might get them, what it costs
+A gift planner for families: who you're buying for, what you might get them, what it costs
 against each person's budget, how far along each gift is (idea, bought,
 wrapped, given), and which purchaser is responsible for buying it. A totals
 view breaks spending down by purchaser for each person.
@@ -24,6 +24,7 @@ development it runs locally in Docker, so Docker must be running.
 npm run db:start   # start the local stack (first run downloads images)
 npm run db:env     # point the app at it (writes .env.local), then npm run dev
 npm run test:db    # check the access rules against the local database
+npm run test:e2e   # drive the built app in a headless browser (see below)
 npm run db:reset   # wipe the local database and re-apply the migrations
 npm run db:types   # regenerate src/data/database.types.ts after a schema change
 npm run db:stop
@@ -32,6 +33,43 @@ npm run db:stop
 The schema and access rules are in `supabase/migrations/`. The local
 dashboard is at http://127.0.0.1:54323. Sign-in emails, with their 6-digit
 codes, are caught at http://127.0.0.1:54324 rather than sent.
+
+### Browser tests
+
+`npm run test:e2e` builds the app, serves the production build and drives it
+in headless Chromium against the local database: two devices syncing, two
+people sharing a plan, and the app starting with no connection. It needs the
+local stack running, `npm run db:env` done, and a one-off browser download:
+
+```sh
+npx playwright-core install chromium-headless-shell
+```
+
+## Going live
+
+The app is a static site on GitHub Pages; the database is a hosted Supabase
+project. `scripts/go-live.sh` walks you through the one-time setup: creating
+the project, applying the migrations, the sign-in email, and the GitHub
+settings. It saves what it collects in `.env.hosted.local`, which git ignores.
+
+```sh
+./scripts/go-live.sh
+```
+
+After that, every push to `main` runs the Deploy workflow, which tests,
+builds and publishes the site. Pull requests run the CI workflow: lint,
+types, unit tests, then the database and browser tests against a throwaway
+Supabase in Docker.
+
+To change the hosted schema, add a new file to `supabase/migrations/` (never
+edit one that has been applied), test it locally with `npm run db:reset`,
+then apply it with `npx supabase db push`.
+
+### On a phone
+
+Open the site, then add it to the home screen (iPhone: Share → Add to Home
+Screen; Android: menu → Install app). It opens full-screen like an app and
+starts without a connection, showing the last synced copy of your plans.
 
 ## How it's put together
 
@@ -53,6 +91,9 @@ codes, are caught at http://127.0.0.1:54324 rather than sent.
 - `src/storage.ts` keeps a copy of each plan in the browser, so the last
   synced list can be read offline.
 - `src/App.tsx` and `src/components/` are the UI.
+- `vite.config.ts` also builds the web manifest and service worker that make
+  the app installable and able to start offline. Icons are generated from
+  `public/icon.svg` with `npm run icons`.
 
 Amounts are stored as whole pence, not pounds, so sums stay exact.
 
@@ -61,4 +102,4 @@ Amounts are stored as whole pence, not pounds, so sums stay exact.
 Editing needs a connection; offline, the last synced copy is read-only. If a
 card is linked to someone while they have the plan open, they keep seeing
 what was already on it until their app next reloads the plan; nothing added
-afterwards reaches them. The app isn't installable or hosted yet.
+afterwards reaches them.
