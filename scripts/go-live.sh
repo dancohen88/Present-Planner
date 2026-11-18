@@ -257,11 +257,12 @@ for file in supabase/migrations/*.sql; do note "  $(basename "$file")"; done
 npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
 ask_secret SUPABASE_DB_PASSWORD "Paste the database password from stage 1:"
 say "Checking what would be applied (nothing changes yet):"
-npx supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
+npx supabase db push --remote --dry-run --password "$SUPABASE_DB_PASSWORD"
 if confirm "Apply these migrations to the hosted database now?"; then
-  npx supabase db push --password "$SUPABASE_DB_PASSWORD"
+  # --remote: without it, this CLI version targets the local database.
+  npx supabase db push --remote --password "$SUPABASE_DB_PASSWORD"
 else
-  SKIPPED+=("Apply migrations: npx supabase db push")
+  SKIPPED+=("Apply migrations: npx supabase db push --remote")
 fi
 unset SUPABASE_DB_PASSWORD
 pause
