@@ -71,6 +71,19 @@ Open the site, then add it to the home screen (iPhone: Share → Add to Home
 Screen; Android: menu → Install app). It opens full-screen like an app and
 starts without a connection, showing the last synced copy of your plans.
 
+## Security advisories
+
+CI fails if any dependency that ships to users has a known vulnerability
+(`npm audit --omit=dev`). Build and test tools are checked by hand with
+`npm audit`:
+
+- `overrides` in `package.json` force fixed versions of `glob` (CVE-2026-118773)
+  and `minimatch` (CVE-2026-118764), used by the service-worker build. Remove
+  each override once the packages depending on it require a fixed version.
+- `picomatch` (CVE-2026-112366, a slow-regex denial of service) has no fixed
+  release yet. It only matches file patterns written in this repo's config,
+  never user input, and never runs in the browser. Upgrade when a fix ships.
+
 ## How it's put together
 
 - `src/domain/` holds the rules as plain data and pure functions, with no React
