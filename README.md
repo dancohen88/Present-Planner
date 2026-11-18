@@ -52,6 +52,10 @@ project. `scripts/go-live.sh` walks you through the one-time setup: creating
 the project, applying the migrations, the sign-in email, and the GitHub
 settings. It saves what it collects in `.env.hosted.local`, which git ignores.
 
+Sign-in emails need your own email account connected to Supabase (the
+wizard uses Gmail with an app password): Supabase's built-in sender only
+delivers to members of your Supabase team, two emails an hour.
+
 ```sh
 ./scripts/go-live.sh
 ```

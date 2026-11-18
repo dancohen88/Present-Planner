@@ -200,7 +200,7 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=8
+TOTAL_STAGES=9
 
 # Run from the repo root, whatever directory this was started from.
 cd "$(dirname "$0")/.."
@@ -276,14 +276,31 @@ step "Click Save."
 note "  If the link lands elsewhere: left menu → Authentication → URL Configuration."
 pause "Press Enter when saved."
 open_url "${DASH}/auth/providers"
-step "Open the Email provider. Keep it enabled."
-step "Set Email OTP Length to 6 (the app's code box takes 6 digits). Save."
-note "  If it isn't there, look under Authentication → Sign In / Providers."
+step "Open the Email provider and check it's enabled."
+note "  The app accepts codes of 6 to 10 digits, so the code length can stay as it is."
 pause
 
 # ── 5 ─────────────────────────────────────────────────────────────────────
+stage "Email sending (Gmail)"
+say "Supabase's own sender only reaches members of your Supabase team, two emails"
+say "an hour. To send codes to your family, connect your own email account."
+say "This uses Gmail with an app password (needs 2-Step Verification on)."
+open_url "https://myaccount.google.com/apppasswords"
+step "Create an app password named Present Planner and copy it (16 letters)."
+step "Keep it in your password manager. Never paste it anywhere but Supabase."
+pause "Press Enter when you have it."
+open_url "${DASH}/auth/smtp"
+step "Turn on Enable custom SMTP, then fill in:"
+step "  Sender email: your Gmail address     Sender name: Present Planner"
+step "  Host: smtp.gmail.com                  Port: 587"
+step "  Username: your Gmail address          Password: the app password"
+step "Click Save."
+note "  If the link lands elsewhere: Authentication → Emails → SMTP Settings."
+pause
+
+# ── 6 ─────────────────────────────────────────────────────────────────────
 stage "Sign-in email"
-say "Make sign-in emails carry a 6-digit code instead of a link."
+say "Make sign-in emails carry a code instead of a link."
 open_url "${DASH}/auth/templates"
 say "Edit BOTH the 'Magic Link' and the 'Confirm signup' templates:"
 step "Subject: Your Present Planner code"
@@ -295,7 +312,7 @@ printf '\n'
 step "Save each template."
 pause
 
-# ── 6 ─────────────────────────────────────────────────────────────────────
+# ── 7 ─────────────────────────────────────────────────────────────────────
 stage "Connect the app to the database"
 say "The app needs the project's publishable key. It's public by design:"
 say "the access rules you applied in stage 3 are what protect the data."
@@ -313,7 +330,7 @@ set_var SUPABASE_URL "$SUPABASE_URL"
 set_var SUPABASE_PUBLISHABLE_KEY "$SUPABASE_PUBLISHABLE_KEY"
 pause
 
-# ── 7 ─────────────────────────────────────────────────────────────────────
+# ── 8 ─────────────────────────────────────────────────────────────────────
 stage "Turn on GitHub Pages"
 say "Pages will publish whatever the Deploy workflow builds."
 if gh api "repos/$REPO/pages" >/dev/null 2>&1; then
@@ -329,7 +346,7 @@ else
 fi
 pause
 
-# ── 8 ─────────────────────────────────────────────────────────────────────
+# ── 9 ─────────────────────────────────────────────────────────────────────
 stage "Deploy and install"
 if gh api "repos/$REPO/contents/.github/workflows/deploy.yml?ref=main" >/dev/null 2>&1; then
   if confirm "Publish the app from main now?"; then
