@@ -55,7 +55,7 @@ export async function newDevice(
   return { ctx, page, problems }
 }
 
-/** The newest 6-digit code emailed to `email` after `after`. */
+/** The newest sign-in code emailed to `email` after `after`. */
 async function codeFor(email: string, after: Date): Promise<string> {
   for (let i = 0; i < 40; i++) {
     const search = await fetch(
@@ -69,7 +69,7 @@ async function codeFor(email: string, after: Date): Promise<string> {
       const message = await fetch(`${MAIL}/message/${fresh[0].ID}`).then(
         (r) => r.json() as Promise<{ Text: string; HTML: string }>,
       )
-      const code = /\b(\d{6})\b/.exec(message.Text || message.HTML)
+      const code = /\b(\d{6,10})\b/.exec(message.Text || message.HTML)
       if (code) return code[1]
     }
     await pause(250)
@@ -82,7 +82,9 @@ export async function signIn(page: Page, email: string) {
   await page.getByLabel('Email').fill(email)
   const sentAt = new Date(Date.now() - 1000)
   await page.getByRole('button', { name: 'Email me a code' }).click()
-  await page.getByLabel('6-digit code').fill(await codeFor(email, sentAt))
+  await page
+    .getByLabel('Code from the email')
+    .fill(await codeFor(email, sentAt))
   await page.getByRole('button', { name: 'Sign in' }).click()
 }
 

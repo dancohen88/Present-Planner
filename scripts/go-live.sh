@@ -200,7 +200,7 @@ finish() {
 
 run_wizard() {
 
-TOTAL_STAGES=8
+TOTAL_STAGES=9
 
 # Run from the repo root, whatever directory this was started from.
 cd "$(dirname "$0")/.."
@@ -254,13 +254,15 @@ pause
 stage "Create the tables and access rules"
 say "Links this folder to the project, then applies supabase/migrations/:"
 for file in supabase/migrations/*.sql; do note "  $(basename "$file")"; done
+npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
 ask_secret SUPABASE_DB_PASSWORD "Paste the database password from stage 1:"
-SUPABASE_DB_PASSWORD="$SUPABASE_DB_PASSWORD" \
-  npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+say "Checking what would be applied (nothing changes yet):"
+npx supabase db push --remote --dry-run --password "$SUPABASE_DB_PASSWORD"
 if confirm "Apply these migrations to the hosted database now?"; then
-  SUPABASE_DB_PASSWORD="$SUPABASE_DB_PASSWORD" npx supabase db push
+  # --remote: without it, this CLI version targets the local database.
+  npx supabase db push --remote --password "$SUPABASE_DB_PASSWORD"
 else
-  SKIPPED+=("Apply migrations: npx supabase db push")
+  SKIPPED+=("Apply migrations: npx supabase db push --remote")
 fi
 unset SUPABASE_DB_PASSWORD
 pause
@@ -274,14 +276,31 @@ step "Click Save."
 note "  If the link lands elsewhere: left menu → Authentication → URL Configuration."
 pause "Press Enter when saved."
 open_url "${DASH}/auth/providers"
-step "Open the Email provider. Keep it enabled."
-step "Set Email OTP Length to 6 (the app's code box takes 6 digits). Save."
-note "  If it isn't there, look under Authentication → Sign In / Providers."
+step "Open the Email provider and check it's enabled."
+note "  The app accepts codes of 6 to 10 digits, so the code length can stay as it is."
 pause
 
 # ── 5 ─────────────────────────────────────────────────────────────────────
+stage "Email sending (Gmail)"
+say "Supabase's own sender only reaches members of your Supabase team, two emails"
+say "an hour. To send codes to your family, connect your own email account."
+say "This uses Gmail with an app password (needs 2-Step Verification on)."
+open_url "https://myaccount.google.com/apppasswords"
+step "Create an app password named Present Planner and copy it (16 letters)."
+step "Keep it in your password manager. Never paste it anywhere but Supabase."
+pause "Press Enter when you have it."
+open_url "${DASH}/auth/smtp"
+step "Turn on Enable custom SMTP, then fill in:"
+step "  Sender email: your Gmail address     Sender name: Present Planner"
+step "  Host: smtp.gmail.com                  Port: 587"
+step "  Username: your Gmail address          Password: the app password"
+step "Click Save."
+note "  If the link lands elsewhere: Authentication → Emails → SMTP Settings."
+pause
+
+# ── 6 ─────────────────────────────────────────────────────────────────────
 stage "Sign-in email"
-say "Make sign-in emails carry a 6-digit code instead of a link."
+say "Make sign-in emails carry a code instead of a link."
 open_url "${DASH}/auth/templates"
 say "Edit BOTH the 'Magic Link' and the 'Confirm signup' templates:"
 step "Subject: Your Present Planner code"
@@ -293,7 +312,7 @@ printf '\n'
 step "Save each template."
 pause
 
-# ── 6 ─────────────────────────────────────────────────────────────────────
+# ── 7 ─────────────────────────────────────────────────────────────────────
 stage "Connect the app to the database"
 say "The app needs the project's publishable key. It's public by design:"
 say "the access rules you applied in stage 3 are what protect the data."
@@ -311,7 +330,7 @@ set_var SUPABASE_URL "$SUPABASE_URL"
 set_var SUPABASE_PUBLISHABLE_KEY "$SUPABASE_PUBLISHABLE_KEY"
 pause
 
-# ── 7 ─────────────────────────────────────────────────────────────────────
+# ── 8 ─────────────────────────────────────────────────────────────────────
 stage "Turn on GitHub Pages"
 say "Pages will publish whatever the Deploy workflow builds."
 if gh api "repos/$REPO/pages" >/dev/null 2>&1; then
@@ -327,7 +346,7 @@ else
 fi
 pause
 
-# ── 8 ─────────────────────────────────────────────────────────────────────
+# ── 9 ─────────────────────────────────────────────────────────────────────
 stage "Deploy and install"
 if gh api "repos/$REPO/contents/.github/workflows/deploy.yml?ref=main" >/dev/null 2>&1; then
   if confirm "Publish the app from main now?"; then

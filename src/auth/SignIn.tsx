@@ -9,7 +9,7 @@ interface Props {
 }
 
 /**
- * Two steps: send a 6-digit code by email, then type it in. A code rather
+ * Two steps: send a one-time code by email, then type it in. A code rather
  * than a link, because a link tapped in a mail app opens the phone's
  * browser instead of the installed app.
  */
@@ -78,8 +78,8 @@ export function SignIn({ db, invited }: Props) {
             <h1>Sign in</h1>
             <p className="muted">
               {invited
-                ? "You've been invited to plan gifts together. Sign in to join: we'll email you a 6-digit code, no password needed."
-                : "We'll email you a 6-digit code. No password needed."}
+                ? "You've been invited to plan gifts together. Sign in to join: we'll email you a sign-in code, no password needed."
+                : "We'll email you a sign-in code. No password needed."}
             </p>
             <label className="field">
               <span>Email</span>
@@ -104,21 +104,23 @@ export function SignIn({ db, invited }: Props) {
               Enter the code we sent to <strong>{email.trim()}</strong>.
             </p>
             <label className="field">
-              <span>6-digit code</span>
+              <span>Code from the email</span>
               <input
                 id="sign-in-code"
                 className="code-input"
                 // one-time-code lets the phone offer the code from the email.
                 autoComplete="one-time-code"
                 inputMode="numeric"
-                pattern="[0-9]{6}"
-                maxLength={6}
+                // Supabase codes are 6 digits by default, but a project can be set
+                // to longer ones (up to 10); accept any of them.
+                pattern="[0-9]{6,10}"
+                maxLength={10}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                 required
               />
             </label>
-            <button type="submit" disabled={busy || code.length !== 6}>
+            <button type="submit" disabled={busy || code.length < 6}>
               {busy ? 'Checking…' : 'Sign in'}
             </button>
             <div className="row-links">
