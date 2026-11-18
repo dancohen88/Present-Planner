@@ -254,11 +254,12 @@ pause
 stage "Create the tables and access rules"
 say "Links this folder to the project, then applies supabase/migrations/:"
 for file in supabase/migrations/*.sql; do note "  $(basename "$file")"; done
+npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
 ask_secret SUPABASE_DB_PASSWORD "Paste the database password from stage 1:"
-SUPABASE_DB_PASSWORD="$SUPABASE_DB_PASSWORD" \
-  npx supabase link --project-ref "$SUPABASE_PROJECT_REF"
+say "Checking what would be applied (nothing changes yet):"
+npx supabase db push --dry-run --password "$SUPABASE_DB_PASSWORD"
 if confirm "Apply these migrations to the hosted database now?"; then
-  SUPABASE_DB_PASSWORD="$SUPABASE_DB_PASSWORD" npx supabase db push
+  npx supabase db push --password "$SUPABASE_DB_PASSWORD"
 else
   SKIPPED+=("Apply migrations: npx supabase db push")
 fi
