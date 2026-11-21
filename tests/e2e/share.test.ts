@@ -74,7 +74,10 @@ describe('sharing a plan', () => {
     await dan.page.getByText('Cookbook').waitFor({ timeout: 8000 })
     await dan.page.locator('.banner-import').waitFor({ state: 'detached' })
     // "Dan" merged into Dan's own buyer; Grandma added.
-    expect(await dan.page.locator('.chip-name').allTextContents()).toEqual([
+    // Scoped to the buyers: the status filter's chips use .chip-name too.
+    expect(
+      await dan.page.locator('.purchasers .chip-name').allTextContents(),
+    ).toEqual([
       'Dan (you)',
       'Grandma',
     ])
