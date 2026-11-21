@@ -233,6 +233,16 @@ describe('breakdownByPurchaser', () => {
     ])
     expect(breakdownByPurchaser(state).columns).toEqual([dan])
   })
+
+  it('leaves out buyers who have nothing allocated', () => {
+    const state = run([
+      { type: 'personAdded', person: sam },
+      { type: 'purchaserAdded', purchaser: dan },
+      { type: 'purchaserAdded', purchaser: jo },
+      { type: 'giftAdded', gift: gift({ id: 'g1', purchaserId: jo.id }) },
+    ])
+    expect(breakdownByPurchaser(state).columns).toEqual([jo])
+  })
 })
 
 describe('totalsFor', () => {

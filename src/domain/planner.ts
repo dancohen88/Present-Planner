@@ -210,7 +210,11 @@ export function giftsBoughtBy(
  * columns[c] is buying.
  */
 export interface Breakdown {
-  /** Every purchaser in order, then null for unassigned gifts if there are any. */
+  /**
+   * Every purchaser with at least one gift, in order, then null for unassigned
+   * gifts if there are any. Purchasers with nothing would be a column of
+   * blanks, which only widens the table.
+   */
   columns: (Purchaser | null)[]
   rows: { person: Person; cells: Totals[]; total: Totals }[]
   columnTotals: Totals[]
@@ -218,10 +222,11 @@ export interface Breakdown {
 }
 
 export function breakdownByPurchaser(state: PlannerState): Breakdown {
-  const hasUnassigned = state.gifts.some((g) => g.purchaserId === null)
-  const columns: (Purchaser | null)[] = hasUnassigned
-    ? [...state.purchasers, null]
-    : [...state.purchasers]
+  const buying = new Set(state.gifts.map((g) => g.purchaserId))
+  const columns: (Purchaser | null)[] = state.purchasers.filter((p) =>
+    buying.has(p.id),
+  )
+  if (buying.has(null)) columns.push(null)
   const columnIds = columns.map((column) => column?.id ?? null)
 
   const rows = state.people.map((person) => {

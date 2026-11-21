@@ -2,18 +2,28 @@ import { useState } from 'react'
 import type { Dispatch, FormEvent } from 'react'
 import { formatPence, parsePounds } from '../domain/money.ts'
 import { giftsFor, totalsFor } from '../domain/planner.ts'
-import type { Gift, PlannerAction, PlannerState } from '../domain/planner.ts'
+import type { GiftStatus, PlannerAction, PlannerState } from '../domain/planner.ts'
 import type { Member } from '../plans/usePlanMembers.ts'
 import { BudgetMeter } from './BudgetMeter.tsx'
+import {
+  NO_FILTER,
+  SHOW_ALL,
+  UNASSIGNED,
+  isFiltering,
+  matchesFilter,
+} from './giftFilter.ts'
+import type { GiftFilter } from './giftFilter.ts'
 import { PersonCard } from './PersonCard.tsx'
-import { PurchaserBar, SHOW_ALL, UNASSIGNED } from './PurchaserBar.tsx'
-import type { PurchaserFilter } from './PurchaserBar.tsx'
+import { PurchaserBar } from './PurchaserBar.tsx'
+import { StatusFilterBar } from './StatusFilterBar.tsx'
 import { TotalsTable } from './TotalsTable.tsx'
 
-function matchesFilter(gift: Gift, filter: PurchaserFilter): boolean {
-  if (filter === SHOW_ALL) return true
-  if (filter === UNASSIGNED) return gift.purchaserId === null
-  return gift.purchaserId === filter
+/** How the filter note finishes "Showing gifts … that are ___". */
+const STATUS_PHRASES: Record<GiftStatus, string> = {
+  idea: 'still to buy',
+  bought: 'bought',
+  wrapped: 'wrapped',
+  given: 'given',
 }
 
 interface Props {
@@ -33,9 +43,9 @@ export function PlannerView({
   members,
   myUserId,
 }: Props) {
-  // The filter is view state, not planner data, so it stays out of the reducer
-  // and isn't saved: reopening the app always shows everything.
-  const [filter, setFilter] = useState<PurchaserFilter>(SHOW_ALL)
+  // The filters are view state, not planner data, so they stay out of the
+  // reducer and aren't saved: reopening the app always shows everything.
+  const [filter, setFilter] = useState<GiftFilter>(NO_FILTER)
   const [view, setView] = useState<'gifts' | 'totals'>('gifts')
   const [name, setName] = useState('')
   const [budget, setBudget] = useState('')
@@ -48,11 +58,11 @@ export function PlannerView({
     0,
   )
 
-  const filtering = filter !== SHOW_ALL
-  const filterName =
-    filter === UNASSIGNED
+  const filtering = isFiltering(filter)
+  const buyerName =
+    filter.purchaser === UNASSIGNED
       ? 'nobody yet'
-      : state.purchasers.find((p) => p.id === filter)?.name
+      : state.purchasers.find((p) => p.id === filter.purchaser)?.name
   const cards = state.people
     .map((person) => {
       const gifts = giftsFor(state, person.id)
@@ -137,11 +147,20 @@ export function PlannerView({
       {state.people.length > 0 && (
         <PurchaserBar
           state={state}
-          filter={filter}
-          onFilterChange={setFilter}
+          filter={filter.purchaser}
+          onFilterChange={(purchaser) => setFilter({ ...filter, purchaser })}
           dispatch={dispatch}
           readOnly={readOnly}
           myUserId={myUserId}
+        />
+      )}
+
+      {state.gifts.length > 0 && (
+        <StatusFilterBar
+          state={state}
+          purchaser={filter.purchaser}
+          status={filter.status}
+          onStatusChange={(status) => setFilter({ ...filter, status })}
         />
       )}
 
@@ -162,6 +181,33 @@ export function PlannerView({
             Totals by buyer
           </button>
         </div>
+      )}
+
+      {/* Shown above both views, since the filters narrow both. */}
+      {filtering && (
+        <p className="filter-note">
+          Showing gifts
+          {filter.purchaser !== SHOW_ALL && (
+            <>
+              {' '}
+              allocated to <strong>{buyerName}</strong>
+            </>
+          )}
+          {filter.status !== SHOW_ALL && (
+            <>
+              {' '}
+              that are <strong>{STATUS_PHRASES[filter.status]}</strong>
+            </>
+          )}
+          .{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => setFilter(NO_FILTER)}
+          >
+            Show all
+          </button>
+        </p>
       )}
 
       {view === 'totals' && state.people.length > 0 ? (
@@ -199,19 +245,6 @@ export function PlannerView({
             )}
           </fieldset>
 
-          {filtering && (
-            <p className="filter-note">
-              Showing gifts allocated to <strong>{filterName}</strong>.{' '}
-              <button
-                type="button"
-                className="link"
-                onClick={() => setFilter(SHOW_ALL)}
-              >
-                Show all
-              </button>
-            </p>
-          )}
-
           {state.people.length === 0 ? (
             <div className="empty">
               <p className="empty-mark" aria-hidden="true">
@@ -231,8 +264,16 @@ export function PlannerView({
                   gifts={gifts}
                   visibleGifts={visibleGifts}
                   purchasers={state.purchasers}
+                  // A gift added while filtering takes on the filter's values,
+                  // so it doesn't vanish the moment it's added.
                   defaultPurchaserId={
-                    filtering && filter !== UNASSIGNED ? filter : null
+                    filter.purchaser === SHOW_ALL ||
+                    filter.purchaser === UNASSIGNED
+                      ? null
+                      : filter.purchaser
+                  }
+                  defaultStatus={
+                    filter.status === SHOW_ALL ? 'idea' : filter.status
                   }
                   members={members}
                   myUserId={myUserId}

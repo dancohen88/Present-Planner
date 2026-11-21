@@ -21,6 +21,8 @@ interface Props {
   purchasers: Purchaser[]
   /** Who a newly added gift is allocated to. */
   defaultPurchaserId: string | null
+  /** The status a newly added gift starts at. */
+  defaultStatus: GiftStatus
   /** Plan members, offered when saying whose account this person is. */
   members: Member[]
   myUserId: string
@@ -44,6 +46,7 @@ export function PersonCard({
   visibleGifts,
   purchasers,
   defaultPurchaserId,
+  defaultStatus,
   members,
   myUserId,
   dispatch,
@@ -78,7 +81,7 @@ export function PersonCard({
         personId: person.id,
         title: trimmed,
         pricePence,
-        status: 'idea',
+        status: defaultStatus,
         purchaserId: defaultPurchaserId,
       },
     })

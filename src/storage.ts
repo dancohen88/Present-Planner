@@ -1,16 +1,36 @@
 import { emptyState } from './domain/planner.ts'
 import type { PlannerState } from './domain/planner.ts'
 
-// Browser storage holds two things:
+// Browser storage holds three things:
 //   * a snapshot of each plan as last synced, so it can be read offline;
 //   * the single-device list saved by versions before accounts existed
-//     ("legacy"), kept only so it can be imported into a shared plan.
+//     ("legacy"), kept only so it can be imported into a shared plan;
+//   * which skin this device shows (a device preference, so it survives
+//     signing out).
 // Every access is wrapped in try/catch: storage can be unavailable (private
 // windows, blocked site data) or hold corrupt JSON, and the app must still run.
 
 const LEGACY_KEY = 'present-planner/v1'
 const SNAPSHOT_PREFIX = 'present-planner/v2/plan/'
 const LAST_PLAN_KEY = 'present-planner/v2/last-plan'
+// index.html reads this key too, before the app loads; keep them in step.
+const SKIN_KEY = 'present-planner/skin'
+
+export function loadSkinId(): string | null {
+  try {
+    return localStorage.getItem(SKIN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function saveSkinId(skinId: string): void {
+  try {
+    localStorage.setItem(SKIN_KEY, skinId)
+  } catch {
+    // Ignore: the skin just won't be remembered next time.
+  }
+}
 
 export interface PlanSnapshot {
   state: PlannerState

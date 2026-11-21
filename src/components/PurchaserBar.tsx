@@ -6,11 +6,8 @@ import {
   totalsFor,
 } from '../domain/planner.ts'
 import type { PlannerAction, PlannerState } from '../domain/planner.ts'
-
-/** 'all', 'unassigned', or a purchaser id. */
-export type PurchaserFilter = string
-export const SHOW_ALL = 'all'
-export const UNASSIGNED = 'unassigned'
+import { SHOW_ALL, UNASSIGNED } from './giftFilter.ts'
+import type { PurchaserFilter } from './giftFilter.ts'
 
 interface Props {
   state: PlannerState
