@@ -1,13 +1,13 @@
 import { formatPence } from '../domain/money.ts'
-import { breakdownByPurchaser } from '../domain/planner.ts'
-import type { PlannerState, Totals } from '../domain/planner.ts'
-import { UNASSIGNED } from './PurchaserBar.tsx'
-import type { PurchaserFilter } from './PurchaserBar.tsx'
+import { breakdownByPurchaser, giftsFor, totalsFor } from '../domain/planner.ts'
+import type { Person, PlannerState, Totals } from '../domain/planner.ts'
+import { UNASSIGNED, filterPlan, isFiltering } from './giftFilter.ts'
+import type { GiftFilter } from './giftFilter.ts'
 
 interface Props {
   state: PlannerState
-  /** The chip selected in "Who's buying"; its column is highlighted. */
-  filter: PurchaserFilter
+  /** The table counts only the gifts that pass these filters. */
+  filter: GiftFilter
 }
 
 function Amount({ totals, over = false }: { totals: Totals; over?: boolean }) {
@@ -31,11 +31,49 @@ function Amount({ totals, over = false }: { totals: Totals; over?: boolean }) {
   )
 }
 
+/**
+ * "budget £50 · £12 left". Always worked out from all of the person's gifts,
+ * never the filtered ones, because a budget belongs to the person.
+ */
+function BudgetLine({ state, person }: { state: PlannerState; person: Person }) {
+  const budget = person.budgetPence
+  if (budget === null) return null
+  const { spentPence } = totalsFor(giftsFor(state, person.id))
+  const left = budget - spentPence
+  return (
+    <span className="row-budget">
+      budget {formatPence(budget)} ·{' '}
+      {left >= 0 ? (
+        `${formatPence(left)} left`
+      ) : (
+        <span className="over-amount">⚠ {formatPence(-left)} over</span>
+      )}
+    </span>
+  )
+}
+
+function names(list: string[]): string {
+  return list.length === 1
+    ? list[0]
+    : `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`
+}
+
 export function TotalsTable({ state, filter }: Props) {
+  const filtering = isFiltering(filter)
+  // The same filtering rule as the gift cards, so both views always agree.
+  const shown = filterPlan(state, filter)
   const { columns, rows, columnTotals, grandTotal } =
-    breakdownByPurchaser(state)
+    breakdownByPurchaser(shown)
   const columnKeys = columns.map((column) => column?.id ?? UNASSIGNED)
-  const activeClass = (key: string) => (key === filter ? 'active' : undefined)
+  // With a single buyer column the Total column would just repeat it.
+  const showTotal = columns.length !== 1
+  const idle = filtering
+    ? []
+    : state.purchasers.filter((p) => !columns.includes(p)).map((p) => p.name)
+
+  if (filtering && rows.length === 0) {
+    return <p className="muted empty-filter">Nothing matches this filter.</p>
+  }
 
   return (
     <>
@@ -51,6 +89,13 @@ export function TotalsTable({ state, filter }: Props) {
         <p id="breakdown-note" className="table-note">
           Spent so far by each buyer, per person. Ideas not yet bought are
           listed underneath.
+          {idle.length > 0 && (
+            <>
+              {' '}
+              {names(idle)} {idle.length === 1 ? 'has' : 'have'} nothing
+              allocated yet, so {idle.length === 1 ? "isn't" : "aren't"} shown.
+            </>
+          )}
         </p>
         {/* The table scrolls sideways inside this box when there are more
             buyers than fit, so the page itself never scrolls horizontally. */}
@@ -60,11 +105,7 @@ export function TotalsTable({ state, filter }: Props) {
               <tr>
                 <th scope="col">For</th>
                 {columns.map((column, c) => (
-                  <th
-                    key={columnKeys[c]}
-                    scope="col"
-                    className={activeClass(columnKeys[c])}
-                  >
+                  <th key={columnKeys[c]} scope="col">
                     <span className="col-head">
                       <span
                         className={
@@ -75,9 +116,11 @@ export function TotalsTable({ state, filter }: Props) {
                     </span>
                   </th>
                 ))}
-                <th scope="col" className="total">
-                  Total
-                </th>
+                {showTotal && (
+                  <th scope="col" className="total">
+                    Total
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -87,26 +130,26 @@ export function TotalsTable({ state, filter }: Props) {
                   <tr key={person.id}>
                     <th scope="row">
                       <span className="row-name">{person.name}</span>
-                      {budget !== null && (
-                        <span className="row-budget">
-                          budget {formatPence(budget)}
-                        </span>
-                      )}
+                      <BudgetLine state={state} person={person} />
                     </th>
                     {cells.map((cell, c) => (
-                      <td
-                        key={columnKeys[c]}
-                        className={activeClass(columnKeys[c])}
-                      >
+                      <td key={columnKeys[c]}>
                         <Amount totals={cell} />
                       </td>
                     ))}
-                    <td className="total">
-                      <Amount
-                        totals={total}
-                        over={budget !== null && total.spentPence > budget}
-                      />
-                    </td>
+                    {showTotal && (
+                      <td className="total">
+                        <Amount
+                          totals={total}
+                          // Only meaningful when the total is every gift.
+                          over={
+                            !filtering &&
+                            budget !== null &&
+                            total.spentPence > budget
+                          }
+                        />
+                      </td>
+                    )}
                   </tr>
                 )
               })}
@@ -115,16 +158,15 @@ export function TotalsTable({ state, filter }: Props) {
               <tr>
                 <th scope="row">Total</th>
                 {columnTotals.map((cell, c) => (
-                  <td
-                    key={columnKeys[c]}
-                    className={activeClass(columnKeys[c])}
-                  >
+                  <td key={columnKeys[c]}>
                     <Amount totals={cell} />
                   </td>
                 ))}
-                <td className="total">
-                  <Amount totals={grandTotal} />
-                </td>
+                {showTotal && (
+                  <td className="total">
+                    <Amount totals={grandTotal} />
+                  </td>
+                )}
               </tr>
             </tfoot>
           </table>

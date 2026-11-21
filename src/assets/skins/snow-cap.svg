@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 26" preserveAspectRatio="none">
+  <!-- Snow piled on a card's top edge, with a few drips over it. -->
+  <path d="M0 14 Q4 4 18 6 Q30 0 48 5 Q66 1 80 6 Q100 -1 122 5 Q140 2 158 7 Q176 0 196 5 Q216 1 234 6 Q256 -1 276 5 Q294 2 312 6 Q332 0 352 5 Q372 2 386 6 Q398 5 400 14 L400 16 Q392 18 384 16 Q380 24 374 17 Q340 19 300 17 Q294 25 288 17 Q240 19 200 17 Q160 19 120 17 Q114 23 108 17 Q60 19 30 17 Q26 22 21 17 Q8 18 0 16 Z" fill="#ffffff"/>
+  <path d="M0 16 Q8 18 21 17 Q60 19 108 17 Q160 19 200 17 Q240 19 288 17 Q340 19 374 17 Q392 18 400 16" fill="none" stroke="#c3d8ea" stroke-width="1"/>
+</svg>

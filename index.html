@@ -27,6 +27,17 @@
     <link rel="icon" href="/icon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/apple-touch-icon-180x180.png" />
     <title>Present Planner</title>
+    <!-- Set the saved skin before the first paint. The app's own code loads
+         later, so without this the page would flash the Classic colours
+         first (a "flash of unstyled content"). The key matches storage.ts;
+         an unknown value matches no skin's CSS and shows Classic. -->
+    <script>
+      try {
+        var skin = localStorage.getItem('present-planner/skin')
+        if (skin && skin !== 'classic')
+          document.documentElement.dataset.skin = skin
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

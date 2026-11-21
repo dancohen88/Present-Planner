@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240">
+  <!-- Faint stars and stitched crosses, like a workbench apron. -->
+  <g fill="#d9a441" opacity="0.28">
+    <path d="M50 30 l4 9 l10 1 l-7.5 6.5 l2.5 9.5 l-9 -5 l-9 5 l2.5 -9.5 l-7.5 -6.5 l10 -1 Z"/>
+    <path d="M170 130 l3 7 l7.5 .7 l-5.6 4.9 l1.9 7.1 l-6.8 -3.8 l-6.8 3.8 l1.9 -7.1 l-5.6 -4.9 l7.5 -.7 Z"/>
+  </g>
+  <g stroke="#b23a2e" stroke-width="2" stroke-linecap="round" opacity="0.18">
+    <path d="M150 40 l8 8 M158 40 l-8 8"/>
+    <path d="M40 160 l8 8 M48 160 l-8 8"/>
+  </g>
+  <g fill="#2f6b3a" opacity="0.18">
+    <circle cx="110" cy="90" r="3"/><circle cx="210" cy="210" r="3"/><circle cx="100" cy="220" r="2"/>
+  </g>
+</svg>

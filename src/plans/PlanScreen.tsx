@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { PlannerView } from '../components/PlannerView.tsx'
+import { SkinPicker } from '../components/SkinPicker.tsx'
 import type { Db } from '../data/db.ts'
 import { importLegacy } from '../data/importLegacy.ts'
 import { usePlannerSync } from '../data/usePlannerSync.ts'
@@ -141,6 +142,7 @@ export function PlanScreen({
           >
             Members{members.length > 0 ? ` · ${members.length}` : ''}
           </button>
+          <SkinPicker />
           <button
             type="button"
             className="ghost"
